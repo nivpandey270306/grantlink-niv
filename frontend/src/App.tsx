@@ -14,18 +14,20 @@ import { TransactionPage } from './components/TransactionPage';
 
 export default function App() {
   const { connectFreighter, connectAlbedo } = useWalletStore();
-  const { setSelectedGrant, fetchGrants, fetchApplications, fetchEvents } = useDataStore();
+  const { setSelectedGrant, fetchGrants, fetchApplications, fetchEvents, health, runHealthCheck } = useDataStore();
   
   const [showLanding, setShowLanding] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSendXlmModal, setShowSendXlmModal] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   React.useEffect(() => {
     // Initial fetch
     fetchGrants();
     fetchApplications();
     fetchEvents();
+    runHealthCheck();
 
     // Poll events every 5 seconds
     const interval = setInterval(() => {
@@ -106,23 +108,29 @@ export default function App() {
                 <div className="space-y-4 text-xs">
                   <div className="flex justify-between border-b border-surface p-2">
                     <span className="font-semibold text-on-surface-variant">Stellar RPC Endpoint:</span>
-                    <code className="text-primary font-bold">https://soroban-testnet.stellar.org</code>
+                    <code className="text-primary font-bold break-all">{health?.details.rpcUrl || 'Loading...'}</code>
                   </div>
                   <div className="flex justify-between border-b border-surface p-2">
                     <span className="font-semibold text-on-surface-variant">Network Passphrase:</span>
-                    <code className="text-primary font-bold">Test SDF Network ; September 2015</code>
+                    <code className="text-primary font-bold break-all">{health?.details.network || 'Loading...'}</code>
                   </div>
                   <div className="flex justify-between border-b border-surface p-2">
-                    <span className="font-semibold text-on-surface-variant">Grant Registry Contract Address:</span>
-                    <code className="text-primary font-bold">CARG...REG3</code>
+                    <span className="font-semibold text-on-surface-variant">Grant Registry Contract:</span>
+                    <code className="text-primary font-bold break-all font-mono">{health?.details.registryId || 'Loading...'}</code>
                   </div>
                   <div className="flex justify-between border-b border-surface p-2">
-                    <span className="font-semibold text-on-surface-variant">Grant Escrow Contract Address:</span>
-                    <code className="text-primary font-bold">CARG...ESC8</code>
+                    <span className="font-semibold text-on-surface-variant">Grant Application Contract:</span>
+                    <code className="text-primary font-bold break-all font-mono">{health?.details.applicationId || 'Loading...'}</code>
                   </div>
                   <div className="flex justify-between border-b border-surface p-2">
-                    <span className="font-semibold text-on-surface-variant">Freighter Wallet Status:</span>
-                    <span className="text-primary font-bold font-mono">ENABLED</span>
+                    <span className="font-semibold text-on-surface-variant">Grant Escrow Contract:</span>
+                    <code className="text-primary font-bold break-all font-mono">{health?.details.escrowId || 'Loading...'}</code>
+                  </div>
+                  <div className="flex justify-between border-b border-surface p-2">
+                    <span className="font-semibold text-on-surface-variant">Wallet Support Status:</span>
+                    <span className={`font-bold font-mono ${health?.walletAvailable ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.walletAvailable ? 'AVAILABLE' : 'UNAVAILABLE'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -172,6 +180,149 @@ export default function App() {
         <div className="fixed inset-0 bg-forest bg-opacity-25 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="max-w-xl w-full">
             <TransactionPage onClose={() => setShowSendXlmModal(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Floating Developer Diagnostics Button */}
+      <button
+        onClick={() => {
+          runHealthCheck();
+          setShowDebugPanel(true);
+        }}
+        className="fixed bottom-6 right-6 bg-[#606C38] text-white font-semibold px-4 py-3 rounded-full hover:bg-[#283618] transition-all shadow-md z-40 flex items-center gap-2"
+        id="dev-diagnostics-btn"
+      >
+        <span className="material-symbols-outlined text-sm">settings_ethernet</span>
+        <span>Diagnostics</span>
+        {health && (!health.rpcReachable || !health.registryConnected || !health.applicationConnected || !health.escrowConnected) && (
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        )}
+      </button>
+
+      {/* Diagnostics Debug Drawer */}
+      {showDebugPanel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
+          <div className="bg-surface-container-lowest border-l border-outline-variant w-full max-w-md p-6 overflow-y-auto shadow-2xl flex flex-col h-full">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">analytics</span>
+                <h4 className="font-bold text-forest font-soria text-lg">Developer Diagnostics</h4>
+              </div>
+              <button
+                onClick={() => setShowDebugPanel(false)}
+                className="text-outline hover:text-copper material-symbols-outlined"
+              >
+                close
+              </button>
+            </div>
+
+            <p className="text-xs text-on-surface-variant mb-4 leading-relaxed font-inter">
+              Real-time health status, blockchain parameters, and connection metrics for GrantLink on Stellar.
+            </p>
+
+            <div className="flex-1 space-y-6 overflow-y-auto pr-1">
+              {/* System Health Summary */}
+              <div className="bg-surface border border-outline-variant rounded p-4 font-inter">
+                <h5 className="font-bold text-xs text-forest mb-3 uppercase tracking-wider">Health Status</h5>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant">Freighter / Wallet Support</span>
+                    <span className={`font-semibold ${health?.walletAvailable ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.walletAvailable ? '✓ Available' : '✗ Unavailable'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant">RPC Node Reachability</span>
+                    <span className={`font-semibold ${health?.rpcReachable ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.rpcReachable ? '✓ Connected' : '✗ Unreachable'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant">Registry Contract Reachability</span>
+                    <span className={`font-semibold ${health?.registryConnected ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.registryConnected ? '✓ Healthy' : '✗ Unreachable'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant">Application Contract Reachability</span>
+                    <span className={`font-semibold ${health?.applicationConnected ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.applicationConnected ? '✓ Healthy' : '✗ Unreachable'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-on-surface-variant">Escrow Contract Reachability</span>
+                    <span className={`font-semibold ${health?.escrowConnected ? 'text-primary' : 'text-red-500'}`}>
+                      {health?.escrowConnected ? '✓ Healthy' : '✗ Unreachable'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blockchain Parameters */}
+              <div className="space-y-3 font-inter">
+                <h5 className="font-bold text-xs text-forest uppercase tracking-wider">Blockchain Parameters</h5>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">RPC Server Endpoint</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all">
+                      {health?.details.rpcUrl}
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">Network Passphrase</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all">
+                      {health?.details.network}
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">Connected Account</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all font-mono">
+                      {health?.details.walletAddress || 'Not Connected'}
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">Registry Contract ID</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all font-mono">
+                      {health?.details.registryId}
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">Application Contract ID</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all font-mono">
+                      {health?.details.applicationId}
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-on-surface-variant font-semibold uppercase">Escrow Contract ID</label>
+                    <code className="block bg-surface p-2 rounded text-primary font-bold overflow-x-auto select-all break-all font-mono">
+                      {health?.details.escrowId}
+                    </code>
+                  </div>
+                  <div className="flex justify-between items-center bg-surface p-2 rounded">
+                    <span className="font-semibold text-on-surface-variant">Latest Ledger Sequence:</span>
+                    <code className="text-primary font-bold font-mono">{health?.latestLedger || 'N/A'}</code>
+                  </div>
+                </div>
+              </div>
+
+              {health?.details.errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded leading-relaxed font-inter">
+                  <span className="font-bold block mb-1">Diagnostic Alert:</span>
+                  {health.details.errorMsg}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-outline-variant pt-4 mt-6 font-inter">
+              <button
+                onClick={() => runHealthCheck()}
+                className="w-full bg-[#606C38] text-white font-semibold py-2.5 rounded text-xs hover:bg-[#283618] transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">autorenew</span>
+                <span>Rerun Health Check</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
