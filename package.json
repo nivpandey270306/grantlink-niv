@@ -1,0 +1,13 @@
+{
+  "name": "grantlink",
+  "version": "1.0.0",
+  "description": "GrantLink: Decentralized Grant Management on Stellar",
+  "scripts": {
+    "contract:build": "cd contracts && cargo build --target wasm32-unknown-unknown --release",
+    "contract:test": "cd contracts && cargo test",
+    "contract:deploy": "cd contracts && node deploy.js",
+    "contract:invoke": "echo 'Run specific stellar contract invoke commands via Stellar CLI'",
+    "frontend:build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev"
+  }
+}
