@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Soria';
+  src: url('https://fonts.cdnfonts.com/s/72898/soria.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-inter antialiased min-h-screen flex flex-col;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Soria', serif;
+  }
+  
+  .font-allura {
+    font-family: 'Allura', cursive;
+  }
+}
