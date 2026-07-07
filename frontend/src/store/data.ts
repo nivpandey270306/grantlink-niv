@@ -275,7 +275,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         // Simulating the read call list_grants
         const op = contract.call('list_grants');
         const tx = new TransactionBuilder(
-          new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0'),
+          new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0'),
           { fee: '100', networkPassphrase: getEnvVar('VITE_NETWORK_PASSPHRASE') }
         ).addOperation(op).setTimeout(0).build();
 
@@ -325,7 +325,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         
         const op = contract.call('list_applications');
         const tx = new TransactionBuilder(
-          new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0'),
+          new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0'),
           { fee: '100', networkPassphrase: getEnvVar('VITE_NETWORK_PASSPHRASE') }
         ).addOperation(op).setTimeout(0).build();
 
@@ -841,7 +841,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
         if (registryId && registryId.startsWith('C') && registryId.length === 56) {
           try {
-            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyAccount = new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0');
             const dummyTx = new TransactionBuilder(dummyAccount, {
               fee: '100',
               networkPassphrase: network
@@ -862,7 +862,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
         if (applicationId && applicationId.startsWith('C') && applicationId.length === 56) {
           try {
-            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyAccount = new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0');
             const dummyTx = new TransactionBuilder(dummyAccount, {
               fee: '100',
               networkPassphrase: network
@@ -881,7 +881,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
         if (escrowId && escrowId.startsWith('C') && escrowId.length === 56) {
           try {
-            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyAccount = new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0');
             const dummyTx = new TransactionBuilder(dummyAccount, {
               fee: '100',
               networkPassphrase: network
