@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GrantLink - Funding With Transparency</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'Soria';
+            src: url('https://fonts.cdnfonts.com/s/72898/soria.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Allura';
+            src: url('https://fonts.gstatic.com/s/allura/v21/9o-JNOpwkcs2Nn0v_e05.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e7e3ca",
+                        "surface-dim": "#dedbc2",
+                        "secondary-fixed-dim": "#bbcda3",
+                        "inverse-surface": "#323120",
+                        "on-primary-fixed": "#171e00",
+                        "on-tertiary-container": "#ffe0c4",
+                        "surface-container-low": "#f8f4db",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#ffdcbb",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed-dim": "#faba75",
+                        "primary": "#485422",
+                        "inverse-primary": "#bfcd8f",
+                        "outline-variant": "#c7c8b9",
+                        "surface": "#fefae0",
+                        "outline": "#77786b",
+                        "surface-tint": "#586330",
+                        "secondary-container": "#d7e9bd",
+                        "primary-fixed-dim": "#bfcd8f",
+                        "on-surface": "#1d1c0d",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-tertiary-fixed": "#2b1700",
+                        "on-secondary-container": "#5a6947",
+                        "background": "#fefae0",
+                        "tertiary": "#714507",
+                        "primary-container": "#606c38",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#dfedac",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#46483c",
+                        "surface-container": "#f2efd5",
+                        "secondary": "#546341",
+                        "surface-container-highest": "#e7e3ca",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#1d1c0d",
+                        "inverse-on-surface": "#f5f1d8",
+                        "on-secondary-fixed": "#121f05",
+                        "surface-container-high": "#ede9cf",
+                        "tertiary-container": "#8d5c20",
+                        "secondary-fixed": "#d7e9bd",
+                        "on-secondary-fixed-variant": "#3d4b2b",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#fefae0",
+                        "primary-fixed": "#dbe9a9",
+                        "on-primary-fixed-variant": "#404b1b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "margin-mobile": "16px",
+                        "stack-sm": "12px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "base": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Soria"],
+                        "headline-lg-mobile": ["Soria"],
+                        "body-lg": ["Inter"],
+                        "caption": ["Inter"],
+                        "display-accent": ["Allura"],
+                        "body-md": ["Inter"],
+                        "title-lg": ["Soria"],
+                        "headline-lg": ["Soria"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "display-accent": ["48px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "title-lg": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline docked full-width top-0 z-50">
+<div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-stack-md">
+<a class="font-display-accent text-display-accent text-primary dark:text-primary-fixed" href="#">GrantLink</a>
+<!-- Search on Left -->
+<div class="hidden md:flex items-center bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus-within:border-primary-container transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md font-body-md w-48 text-on-surface placeholder-on-surface-variant" placeholder="Search grants..." type="text"/>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-stack-lg">
+<ul class="flex gap-stack-md">
+<li><a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#how-it-works">How It Works</a></li>
+<li><a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#statistics">Statistics</a></li>
+<li><a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Explore</a></li>
+</ul>
+<div class="flex items-center gap-stack-sm">
+<button class="bg-primary-container text-on-primary font-label-md text-label-md px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+                        Connect Wallet
+                    </button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small, professional user profile avatar showing a stylized architectural building icon in deep green tones, representing an institutional user. The background is a soft warm ivory. The design is minimalist, clean, and suited for a premium financial dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC99RSfJG2aLaoS8dnPwTEPP7BA4vkhzfSoq4xYGzctnTDclzgDf2_8cklQ12YONVWVuRgsNH2a9ROZ1syTFRYrkrvHgJ2_k4UovehvuX-5aI_7MANEV90tPVjpejE_CPbmJDNl24YXltTO2PjgEP1Gt7_ftBOXbqoikMJ2uYcgUFO7BSNDZkz6uqBcINk3NOiO2hiHDWkOnsFE2fV8UNJi0LWjzboF2qJiQ2vUcrC2AbZwlPpSCkA"/>
+</button>
+</div>
+</div>
+<button class="md:hidden text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<main class="flex-grow">
+<!-- Hero Section -->
+<section class="w-full px-margin-mobile md:px-margin-desktop py-stack-lg md:py-24 max-w-container-max mx-auto relative overflow-hidden">
+<!-- Decorative Background Element -->
+<div class="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+<svg class="w-full h-full fill-current text-primary-container" viewbox="0 0 100 100">
+<path d="M0,0 L100,0 L100,100 L0,100 Z" stroke="none"></path>
+<!-- Abstract architectural lines -->
+<line stroke="currentColor" stroke-width="0.5" x1="20" x2="20" y1="0" y2="100"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="40" x2="40" y1="0" y2="100"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="60" x2="60" y1="0" y2="100"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="80" x2="80" y1="0" y2="100"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="0" x2="100" y1="20" y2="20"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="0" x2="100" y1="40" y2="40"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="0" x2="100" y1="60" y2="60"></line>
+<line stroke="currentColor" stroke-width="0.5" x1="0" x2="100" y1="80" y2="80"></line>
+</svg>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter items-center relative z-10">
+<div class="flex flex-col gap-stack-md">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+                        Funding With <br/>
+<span class="font-display-accent text-display-accent text-primary-container block mt-2">Transparency</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">
+                        Create, manage, and distribute grants securely through Stellar. An institutional platform designed for clear, accountable impact funding.
+                    </p>
+<div class="flex flex-col sm:flex-row gap-stack-sm mt-stack-sm">
+<button class="bg-primary-container text-on-primary font-label-md text-label-md px-8 py-4 rounded-lg hover:bg-secondary transition-colors text-center">
+                            Explore Grants
+                        </button>
+<button class="border border-primary-container text-primary-container font-label-md text-label-md px-8 py-4 rounded-lg hover:bg-surface-container-low transition-colors text-center">
+                            Create Grant
+                        </button>
+</div>
+</div>
+<div class="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden border border-outline-variant bg-surface-container-lowest">
+<img class="absolute inset-0 w-full h-full object-cover opacity-90 mix-blend-multiply" data-alt="A modern, minimalist abstract digital illustration representing transparent financial transactions. It features clean, architectural geometric lines overlapping over a warm ivory background. Subtle accents of deep forest green and sand gold indicate secure data flow. The style is premium, corporate, and reminiscent of a high-end financial report." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-ZE6thtX3DE-g9mXBmJYijPKlIkzrN-CzQbqLXSfwjTKY8omcea4WCxn2akjs_Dd-pOQxoTDK5RsMQUCkdFpkisFTzXKiJVOY2QRbEh1JXQWzhuwtrKU133r0Jisw9d64YR0DqZYcB0GV4G99nF17eBNmoWHm9pmo2_RsyER6RUw8-eSKt-ugB3_NxypyL2QgL6IKr1yxYZyelN6wEQFnz2C09EOmDKpskPMvSwW9Zv_J_XuGHh0"/>
+</div>
+</div>
+</section>
+<!-- How It Works Timeline -->
+<section class="w-full px-margin-mobile md:px-margin-desktop py-stack-lg bg-surface-container-lowest border-y border-outline-variant" id="how-it-works">
+<div class="max-w-container-max mx-auto">
+<div class="text-center mb-stack-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-stack-sm">The Process</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">A streamlined, secure lifecycle for institutional grants.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter relative">
+<!-- Connecting Line for Desktop -->
+<div class="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-outline-variant z-0"></div>
+<!-- Step 1 -->
+<div class="flex flex-col items-center text-center relative z-10">
+<div class="w-24 h-24 bg-surface rounded-full border-2 border-primary-container flex items-center justify-center mb-stack-sm shadow-sm">
+<span class="material-symbols-outlined text-primary-container text-4xl">edit_document</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-2">Create Grant</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xs">Define objectives, set funding caps, and establish clear milestone criteria on the ledger.</p>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center text-center relative z-10 mt-stack-md md:mt-0">
+<div class="w-24 h-24 bg-surface rounded-full border-2 border-primary-container flex items-center justify-center mb-stack-sm shadow-sm">
+<span class="material-symbols-outlined text-primary-container text-4xl">verified_user</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-2">Approve Recipient</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xs">Review proposals and securely onboard verified institutions or individuals to the grant.</p>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center text-center relative z-10 mt-stack-md md:mt-0">
+<div class="w-24 h-24 bg-surface rounded-full border-2 border-primary-container flex items-center justify-center mb-stack-sm shadow-sm">
+<span class="material-symbols-outlined text-primary-container text-4xl">payments</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-2">Release Milestones</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xs">Funds are distributed automatically via smart contracts as verified milestones are achieved.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Statistics (Bento Layout) -->
+<section class="w-full px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto" id="statistics">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-stack-lg">Network Impact</h2>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Main Stat Card -->
+<div class="col-span-1 md:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md flex flex-col justify-between">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-2">Total Distributed</p>
+<h3 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary-container font-bold counter" data-target="15240000">0</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">XLM equivalents transferred securely via the Stellar network.</p>
+</div>
+<div class="mt-stack-md h-32 w-full relative">
+<!-- Abstract sparkline representing growth -->
+<svg class="w-full h-full fill-none stroke-primary-container stroke-2" viewbox="0 0 100 30">
+<path d="M0,30 L10,25 L20,28 L30,15 L40,18 L50,8 L60,12 L70,5 L80,10 L90,2 L100,0" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Secondary Stat Cards -->
+<div class="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-gutter">
+<div class="bg-surface border border-outline-variant rounded-xl p-stack-md flex flex-col justify-center text-center">
+<span class="material-symbols-outlined text-primary-container text-3xl mb-stack-sm mx-auto">assignment</span>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-1 counter" data-target="842">0</h4>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase">Total Grants</p>
+</div>
+<div class="bg-surface border border-outline-variant rounded-xl p-stack-md flex flex-col justify-center text-center">
+<span class="material-symbols-outlined text-primary-container text-3xl mb-stack-sm mx-auto">group</span>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-1 counter" data-target="1250">0</h4>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase">Active Recipients</p>
+</div>
+<div class="sm:col-span-2 bg-secondary-container rounded-xl p-stack-md border border-outline-variant flex items-center justify-between">
+<div>
+<h4 class="font-title-lg text-title-lg text-on-secondary-container">Ready to scale impact?</h4>
+<p class="font-body-md text-body-md text-on-secondary-container mt-1">Join the growing network of transparent funding.</p>
+</div>
+<button class="bg-surface text-primary-container border border-primary-container font-label-md text-label-md px-6 py-2 rounded-lg hover:bg-surface-variant transition-colors">
+                            Apply Now
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant dark:border-outline full-width bottom-0 mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop py-stack-md w-full max-w-container-max mx-auto gap-stack-md md:gap-0">
+<a class="font-display-accent text-headline-md text-primary dark:text-primary-fixed" href="#">GrantLink</a>
+<ul class="flex flex-wrap justify-center gap-x-stack-md gap-y-stack-sm">
+<li><a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-tertiary dark:hover:text-tertiary-fixed-dim transition-colors opacity-90 hover:opacity-100" href="#">Documentation</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-tertiary dark:hover:text-tertiary-fixed-dim transition-colors opacity-90 hover:opacity-100" href="#">Network Status</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-tertiary dark:hover:text-tertiary-fixed-dim transition-colors opacity-90 hover:opacity-100" href="#">Privacy Policy</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-tertiary dark:hover:text-tertiary-fixed-dim transition-colors opacity-90 hover:opacity-100" href="#">Contact</a></li>
+</ul>
+<div class="font-caption text-caption text-on-surface-variant dark:text-surface-variant">
+                © 2024 GrantLink. Powered by Stellar.
+            </div>
+</div>
+</footer>
+<script>
+        // Simple counter animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const counters = document.querySelectorAll('.counter');
+            
+            const animateCounter = (el) => {
+                const target = +el.getAttribute('data-target');
+                const duration = 2000; // ms
+                const stepTime = Math.abs(Math.floor(duration / 100));
+                let current = 0;
+                
+                const formatNumber = (num) => {
+                     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                };
+
+                const timer = setInterval(() => {
+                    const increment = Math.ceil(target / 100);
+                    current += increment;
+                    
+                    if (current >= target) {
+                        el.innerText = formatNumber(target);
+                        clearInterval(timer);
+                    } else {
+                        el.innerText = formatNumber(current);
+                    }
+                }, stepTime);
+            };
+
+            // Intersection Observer to start animation when visible
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateCounter(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            counters.forEach(counter => observer.observe(counter));
+        });
+    </script>
+</body></html>

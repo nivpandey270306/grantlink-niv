@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GrantLink - Grant Details</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Soria&amp;family=Allura&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e7e3ca",
+                        "surface-dim": "#dedbc2",
+                        "secondary-fixed-dim": "#bbcda3",
+                        "inverse-surface": "#323120",
+                        "on-primary-fixed": "#171e00",
+                        "on-tertiary-container": "#ffe0c4",
+                        "surface-container-low": "#f8f4db",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#ffdcbb",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed-dim": "#faba75",
+                        "primary": "#485422",
+                        "inverse-primary": "#bfcd8f",
+                        "outline-variant": "#c7c8b9",
+                        "surface": "#fefae0",
+                        "outline": "#77786b",
+                        "surface-tint": "#586330",
+                        "secondary-container": "#d7e9bd",
+                        "primary-fixed-dim": "#bfcd8f",
+                        "on-surface": "#1d1c0d",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-tertiary-fixed": "#2b1700",
+                        "on-secondary-container": "#5a6947",
+                        "background": "#fefae0",
+                        "tertiary": "#714507",
+                        "primary-container": "#606c38",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#dfedac",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#46483c",
+                        "surface-container": "#f2efd5",
+                        "secondary": "#546341",
+                        "surface-container-highest": "#e7e3ca",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#1d1c0d",
+                        "inverse-on-surface": "#f5f1d8",
+                        "on-secondary-fixed": "#121f05",
+                        "surface-container-high": "#ede9cf",
+                        "tertiary-container": "#8d5c20",
+                        "secondary-fixed": "#d7e9bd",
+                        "on-secondary-fixed-variant": "#3d4b2b",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#fefae0",
+                        "primary-fixed": "#dbe9a9",
+                        "on-primary-fixed-variant": "#404b1b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "margin-mobile": "16px",
+                        "stack-sm": "12px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "base": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Soria"],
+                        "headline-lg-mobile": ["Soria"],
+                        "body-lg": ["Inter"],
+                        "caption": ["Inter"],
+                        "display-accent": ["Allura"],
+                        "body-md": ["Inter"],
+                        "title-lg": ["Soria"],
+                        "headline-lg": ["Soria"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "display-accent": ["48px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "title-lg": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #E3E0C8;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-white dark:bg-inverse-surface h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex flex-col h-full p-gutter transition-all duration-200 ease-in-out z-40 hidden md:flex">
+<div class="flex items-center gap-4 mb-stack-lg">
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden">
+<img alt="Institution Logo" class="w-full h-full object-cover" data-alt="A minimalist, geometric institution logo featuring abstract pillars or overlapping rings in muted olive greens and deep forest greens on a warm ivory background. High resolution, crisp lines, modern corporate identity style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBa2doL1b6WWqlpViJcDvpXrIYa_BK0936EC38v5rXblzp3vHVQf-VI8XRLg7tZQvxLHAcs4NPyGgd6QNTHcDQ6rVGGog1vKpN-lE8saVbS1fVQ4bczwtFu9SxlAzjbK3W-ctJattKPi45nRolVTJBgWobHpryesQwn8Xb0Ks6Y_bPlSgBxi2YrmKi_BVlj3ugRX7sIEq7N0T6b6n5ncs76tf2TJi-upEkzmvYOi0-DTlYzCjBH_hk"/>
+</div>
+<div>
+<div class="font-display-accent text-title-lg text-primary leading-tight">GrantLink Admin</div>
+<div class="font-caption text-caption text-on-surface-variant">Stellar Mainnet</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg mb-stack-md hover:opacity-90 transition-opacity">
+            Create Grant
+        </button>
+<ul class="flex-1 space-y-2">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                    Overview
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+                    Grants
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment_ind</span>
+                    Applications
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+                    Milestones
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">analytics</span>
+                    Analytics
+                </a>
+</li>
+</ul>
+<ul class="space-y-2 mt-auto pt-stack-md border-t border-outline-variant">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">description</span>
+                    Documentation
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help_outline</span>
+                    Support
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- Mobile Top Nav (visible only on md:hidden if needed, but per instructions we keep canvas clear if not top level. For simplicity, we assume this is a detail view so no mobile shell.) -->
+<div class="flex-1 p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Breadcrumbs / Back -->
+<div class="flex items-center gap-2 mb-stack-md">
+<a class="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                    Back to Grants
+                </a>
+</div>
+<!-- Header Section -->
+<header class="mb-stack-lg border-b border-outline-variant pb-stack-md flex flex-col md:flex-row justify-between items-start md:items-end gap-stack-md">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">ID: GRT-2024-892A</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-md text-xs px-2 py-1 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Active
+                        </span>
+</div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Regenerative Agriculture Fund</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Created by: Global Earth Initiative</p>
+</div>
+<div class="text-left md:text-right">
+<div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-widest">Total Amount</div>
+<div class="font-headline-md text-headline-md text-primary">500,000 XLM</div>
+</div>
+</header>
+<!-- Grid Layout for Content -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column (Milestones & Applicants) -->
+<div class="lg:col-span-8 flex flex-col gap-stack-lg">
+<!-- Section 2: Milestone Tracker (Bento style card) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md">
+<div class="flex justify-between items-center mb-stack-md">
+<h2 class="font-title-lg text-title-lg text-primary">Milestone Tracker</h2>
+<button class="text-primary hover:text-primary-container font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">edit</span>
+                                Edit Timeline
+                            </button>
+</div>
+<div class="relative pl-6 border-l-2 border-surface-tint border-opacity-30 space-y-8">
+<!-- Milestone 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-surface-container-lowest"></div>
+<div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h3 class="font-label-md text-label-md text-on-surface">Phase 1: Planning</h3>
+<span class="bg-secondary-container text-on-secondary-container text-xs px-2 py-0.5 rounded">Completed</span>
+</div>
+<p class="font-caption text-caption text-on-surface-variant">Initial survey and land assessment complete.</p>
+</div>
+<div class="font-label-md text-label-md text-on-surface">100,000 XLM</div>
+</div>
+</div>
+<!-- Milestone 2 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-tertiary-container"></div>
+<div class="bg-surface-container-low border border-outline-variant p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h3 class="font-label-md text-label-md text-on-surface">Phase 2: Implementation</h3>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed text-xs px-2 py-0.5 rounded">Pending Approval</span>
+</div>
+<p class="font-caption text-caption text-on-surface-variant">Procurement of seeds and equipment.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="font-label-md text-label-md text-on-surface mr-2">250,000 XLM</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded flex items-center gap-2 hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-sm">lock_open</span>
+                                            Release Funds
+                                        </button>
+</div>
+</div>
+</div>
+<!-- Milestone 3 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-outline-variant"></div>
+<div class="bg-surface-container-lowest border border-outline-variant border-dashed p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 opacity-70">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h3 class="font-label-md text-label-md text-on-surface">Phase 3: Harvest</h3>
+<span class="bg-surface-variant text-on-surface-variant text-xs px-2 py-0.5 rounded">Locked</span>
+</div>
+<p class="font-caption text-caption text-on-surface-variant">First crop yield metrics and distribution.</p>
+</div>
+<div class="font-label-md text-label-md text-on-surface">150,000 XLM</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 1: Applicant List Table -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col">
+<div class="p-stack-md border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<h2 class="font-title-lg text-title-lg text-primary">Applicant Pool</h2>
+<span class="font-caption text-caption text-on-surface-variant">3 Candidates</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase">Applicant</th>
+<th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase">Proposal</th>
+<th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase">Status</th>
+<th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase text-right">Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant hover:bg-surface transition-colors">
+<td class="p-4">
+<div class="font-body-md text-body-md text-on-surface font-medium">EcoFarm Co-op</div>
+<div class="font-caption text-caption text-on-surface-variant">verified.stellar.org</div>
+</td>
+<td class="p-4">
+<a class="text-primary hover:underline flex items-center gap-1 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-sm">link</span>
+                                                View PDF
+                                            </a>
+</td>
+<td class="p-4">
+<span class="bg-surface-variant text-on-surface-variant text-xs px-2 py-1 rounded inline-block">Under Review</span>
+</td>
+<td class="p-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="px-3 py-1 border border-primary text-primary font-label-md text-xs rounded hover:bg-primary hover:text-on-primary transition-colors">Approve</button>
+<button class="px-3 py-1 border border-outline text-on-surface-variant font-label-md text-xs rounded hover:border-error hover:text-error transition-colors">Reject</button>
+</div>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface transition-colors">
+<td class="p-4">
+<div class="font-body-md text-body-md text-on-surface font-medium">Terra Renewables</div>
+<div class="font-caption text-caption text-on-surface-variant">terra-dev.xlm</div>
+</td>
+<td class="p-4">
+<a class="text-primary hover:underline flex items-center gap-1 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-sm">link</span>
+                                                View Deck
+                                            </a>
+</td>
+<td class="p-4">
+<span class="bg-secondary-container text-on-secondary-container text-xs px-2 py-1 rounded inline-block">Shortlisted</span>
+</td>
+<td class="p-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="px-3 py-1 border border-primary text-primary font-label-md text-xs rounded hover:bg-primary hover:text-on-primary transition-colors">Approve</button>
+<button class="px-3 py-1 border border-outline text-on-surface-variant font-label-md text-xs rounded hover:border-error hover:text-error transition-colors">Reject</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Right Column (Event Log) -->
+<div class="lg:col-span-4">
+<!-- Section 3: Real-time event log -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col h-full max-h-[800px]">
+<div class="p-stack-md border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+<h2 class="font-title-lg text-title-lg text-primary">Event Log</h2>
+<div class="ml-auto w-2 h-2 rounded-full bg-secondary-container animate-pulse"></div>
+</div>
+<div class="flex-1 overflow-y-auto p-stack-md space-y-6">
+<!-- Log Item 1 -->
+<div class="flex gap-3">
+<div class="mt-1">
+<span class="material-symbols-outlined text-on-surface-variant text-base">person_add</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface text-sm"><strong>EcoFarm Co-op</strong> submitted an application.</p>
+<p class="font-caption text-caption text-on-surface-variant">2 hours ago</p>
+</div>
+</div>
+<!-- Log Item 2 -->
+<div class="flex gap-3">
+<div class="mt-1">
+<span class="material-symbols-outlined text-primary text-base">check_circle</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface text-sm"><strong>Phase 1: Planning</strong> marked as complete by Admin.</p>
+<p class="font-caption text-caption text-on-surface-variant">Yesterday, 14:30</p>
+</div>
+</div>
+<!-- Log Item 3 -->
+<div class="flex gap-3">
+<div class="mt-1">
+<span class="material-symbols-outlined text-tertiary-container text-base">payments</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface text-sm"><strong>100,000 XLM</strong> released to contract escrow.</p>
+<p class="font-caption text-caption text-on-surface-variant">Yesterday, 14:35</p>
+</div>
+</div>
+<!-- Log Item 4 -->
+<div class="flex gap-3 opacity-60">
+<div class="mt-1">
+<span class="material-symbols-outlined text-on-surface-variant text-base">edit_document</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface text-sm">Grant description updated.</p>
+<p class="font-caption text-caption text-on-surface-variant">Oct 12, 2024</p>
+</div>
+</div>
+<!-- Log Item 5 -->
+<div class="flex gap-3 opacity-60">
+<div class="mt-1">
+<span class="material-symbols-outlined text-on-surface-variant text-base">add_box</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface text-sm">Grant <strong>Regenerative Agriculture Fund</strong> created.</p>
+<p class="font-caption text-caption text-on-surface-variant">Oct 10, 2024</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</body></html>
