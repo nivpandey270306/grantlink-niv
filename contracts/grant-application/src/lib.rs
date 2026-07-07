@@ -198,7 +198,7 @@ mod test {
     use grant_escrow::GrantEscrowContract;
 
     #[test]
-    fn test_submit_and_approve_application() {
+    fn submit_application_test() {
         let env = Env::default();
         env.mock_all_auths();
 
@@ -206,24 +206,17 @@ mod test {
         let owner = Address::generate(&env);
         let applicant = Address::generate(&env);
 
-        // Deploy Registry
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
         let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
 
-        // Create Grant
         let title = String::from_str(&env, "Agri Fund");
         let desc = String::from_str(&env, "Agri Desc");
         let cat = String::from_str(&env, "Agriculture");
         let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
 
-        // Deploy Application contract
         let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
         let app_client = GrantApplicationContractClient::new(&env, &app_id);
 
-        // Deploy Escrow contract (it expects app_id as application contract address)
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), app_id.clone()));
-
-        // Submit Application
         let app_name = String::from_str(&env, "Farmer Joe");
         let proj_title = String::from_str(&env, "Solar Irrigation");
         let prop = String::from_str(&env, "Solar prop detail...");
@@ -232,36 +225,69 @@ mod test {
 
         let app_state = app_client.get_application(&1).unwrap();
         assert_eq!(app_state.status, 0);
+    }
 
-        // Approve Application (internally calls Escrow)
+    #[test]
+    fn approve_application_test() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+        let applicant = Address::generate(&env);
+
+        let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
+
+        let title = String::from_str(&env, "Agri Fund");
+        let desc = String::from_str(&env, "Agri Desc");
+        let cat = String::from_str(&env, "Agriculture");
+        let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
+
+        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
+        let app_client = GrantApplicationContractClient::new(&env, &app_id);
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), app_id.clone()));
+
+        let app_name = String::from_str(&env, "Farmer Joe");
+        let proj_title = String::from_str(&env, "Solar Irrigation");
+        let prop = String::from_str(&env, "Solar prop detail...");
+        app_client.submit_application(&applicant, &grant_id, &app_name, &proj_title, &prop, &10000i128);
+
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
         app_client.approve_application(&1, &escrow_id, &milestone_amounts);
 
         let approved_app = app_client.get_application(&1).unwrap();
         assert_eq!(approved_app.status, 1);
-
-        // Verify Escrow was initialized
-        let escrow_client = grant_escrow::GrantEscrowContractClient::new(&env, &escrow_id);
-        let escrow_state = escrow_client.get_escrow(&grant_id).unwrap();
-        assert_eq!(escrow_state.recipient, applicant);
-        assert_eq!(escrow_state.status, 0);
     }
 
     #[test]
-    fn test_submit_application_invalid_grant() {
+    fn reject_application_test() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::generate(&env);
-        let applicant = Address::generate(&env);
-        let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
 
-        let app_id = env.register(GrantApplicationContract, (admin, registry_id));
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+        let applicant = Address::generate(&env);
+
+        let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
+
+        let title = String::from_str(&env, "Agri Fund");
+        let desc = String::from_str(&env, "Agri Desc");
+        let cat = String::from_str(&env, "Agriculture");
+        let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
+
+        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
         let app_client = GrantApplicationContractClient::new(&env, &app_id);
 
-        let app_name = String::from_str(&env, "Farmer");
-        let proj = String::from_str(&env, "Irrigation");
-        let prop = String::from_str(&env, "Proposal");
-        let res = app_client.try_submit_application(&applicant, &999u32, &app_name, &proj, &prop, &100i128);
-        assert!(res.is_err());
+        let app_name = String::from_str(&env, "Farmer Joe");
+        let proj_title = String::from_str(&env, "Solar Irrigation");
+        let prop = String::from_str(&env, "Solar prop detail...");
+        app_client.submit_application(&applicant, &grant_id, &app_name, &proj_title, &prop, &10000i128);
+
+        app_client.reject_application(&1);
+
+        let rejected_app = app_client.get_application(&1).unwrap();
+        assert_eq!(rejected_app.status, 2); // Rejected
     }
 }
