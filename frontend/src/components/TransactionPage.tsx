@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWalletStore } from '../store/wallet';
 import { useDataStore } from '../store/data';
+import { Asset, Operation, TransactionBuilder, rpc, Memo } from '@stellar/stellar-sdk';
 
 interface TransactionPageProps {
   onClose: () => void;
@@ -34,22 +35,83 @@ export function TransactionPage({ onClose }: TransactionPageProps) {
     setErrorMsg('');
 
     try {
-      // Simulate transaction build, sign, and submit delay
-      await new Promise(r => setTimeout(r, 2000));
-      
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+      const rpcUrl = (import.meta as any).env.VITE_RPC_URL;
+      const networkPassphrase = (import.meta as any).env.VITE_NETWORK_PASSPHRASE;
+      const server = new rpc.Server(rpcUrl) as any;
+
+      // 1. Fetch account sequence
+      let sourceAccount;
+      try {
+        sourceAccount = await server.getAccount(address);
+      } catch (err) {
+        throw new Error('Failed to retrieve account details. Ensure your wallet is funded.');
+      }
+
+      // 2. Build payment operation
+      const op = Operation.payment({
+        destination: recipient,
+        asset: Asset.native(),
+        amount: amount,
+      });
+
+      // 3. Construct transaction
+      let tx = new TransactionBuilder(sourceAccount, {
+        fee: '100',
+        networkPassphrase,
+      })
+        .addOperation(op)
+        .setTimeout(60);
+
+      if (memo) {
+        tx = tx.addMemo(Memo.text(memo));
+      }
+
+      const builtTx = tx.build();
+
+      // 4. Request wallet signature
+      const xdr = builtTx.toXDR();
+      const signedXdr = await signTx(xdr);
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
+
+      // 5. Submit transaction
+      const response = await server.sendTransaction(signedTx) as any;
+      if (response.status === 'ERROR') {
+        throw new Error(`Transaction submission error: ${response.errorResultXdr || response.errorResult || 'Unknown error'}`);
+      }
+
+      const hash = response.hash;
+
+      // 6. Poll for status
+      let status = response.status as any;
+      let pollAttempts = 0;
+      while (status === 'PENDING' && pollAttempts < 15) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const txStatus = await server.getTransaction(hash) as any;
+        status = txStatus.status;
+        pollAttempts++;
+        if (status === 'SUCCESS') {
+          break;
+        }
+        if (status === 'FAILED') {
+          throw new Error('On-chain transaction execution failed.');
+        }
+      }
+
+      if (status !== 'SUCCESS') {
+        throw new Error(`Transaction polling timed out. Status: ${status}`);
+      }
 
       // Update state
       setTxHash(hash);
       setTxState('success');
-      addToast('Transfer Confirmed', `Successfully sent ${amount} XLM to ${recipient.slice(0,6)}...`, 'success');
+      addToast('Transfer Confirmed', `Successfully sent ${amount} XLM to ${recipient.slice(0, 6)}...`, 'success');
 
       // Refresh balance
       await refreshBalance();
 
       // Log event to timeline
       await addEvent({
-        type: 'FundsDeposited', // We can record it as a deposit or custom transfer
+        type: 'FundsDeposited',
         txHash: hash,
         grantId: 0,
         details: { amount: parseFloat(amount), recipient }
@@ -62,7 +124,7 @@ export function TransactionPage({ onClose }: TransactionPageProps) {
     } catch (err: any) {
       setTxState('failed');
       setErrorMsg(err.message || 'Transaction submission failed.');
-      addToast('Transfer Failed', err.message || 'Stellar RPC transaction simulation error', 'error');
+      addToast('Transfer Failed', err.message || 'Stellar RPC transaction error', 'error');
     } finally {
       setLoading(false);
     }
