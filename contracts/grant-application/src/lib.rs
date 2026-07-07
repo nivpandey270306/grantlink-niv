@@ -1,9 +1,24 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, String, Vec, symbol_short};
 
-// Import dependencies from Cargo workspace
-use grant_registry::{GrantRegistryContractClient, Grant};
-use grant_escrow::{GrantEscrowContractClient};
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Grant {
+    pub id: u32,
+    pub owner: Address,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub amount: i128,
+    pub deadline: u64,
+    pub milestone_count: u32,
+    pub status: u32,
+}
+
+#[soroban_sdk::contractclient(name = "GrantRegistryContractClient")]
+pub trait GrantRegistryInterface {
+    fn get_grant(env: Env, id: u32) -> Option<Grant>;
+}
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -128,8 +143,12 @@ impl GrantApplicationContract {
         env.storage().persistent().set(&DataKey::Application(app_id), &app);
 
         // Cross-Contract Call: Trigger Escrow Contract Initialization
-        let escrow_client = GrantEscrowContractClient::new(&env, &escrow_contract);
-        escrow_client.initialize_escrow(&app.grant_id, &app.applicant, &milestone_amounts);
+        use soroban_sdk::IntoVal;
+        let mut args = soroban_sdk::Vec::new(&env);
+        args.push_back(app.grant_id.into_val(&env));
+        args.push_back(app.applicant.clone().into_val(&env));
+        args.push_back(milestone_amounts.into_val(&env));
+        let _: () = env.invoke_contract(&escrow_contract, &soroban_sdk::Symbol::new(&env, "initialize_escrow"), args);
 
         // Emit Event
         env.events().publish(
