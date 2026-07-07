@@ -52,6 +52,25 @@ interface ToastMessage {
   type: 'success' | 'error' | 'info';
 }
 
+export interface HealthStatus {
+  walletAvailable: boolean;
+  rpcReachable: boolean;
+  registryConnected: boolean;
+  applicationConnected: boolean;
+  escrowConnected: boolean;
+  networkMatch: boolean;
+  latestLedger: number;
+  details: {
+    rpcUrl: string;
+    network: string;
+    registryId: string;
+    applicationId: string;
+    escrowId: string;
+    walletAddress?: string;
+    errorMsg?: string;
+  };
+}
+
 interface DataState {
   grants: Grant[];
   applications: Application[];
@@ -62,6 +81,7 @@ interface DataState {
   selectedGrantApps: Application[];
   toasts: ToastMessage[];
   loading: boolean;
+  health: HealthStatus | null;
   
   fetchGrants: () => Promise<void>;
   fetchApplications: () => Promise<void>;
@@ -80,6 +100,7 @@ interface DataState {
   addToast: (title: string, message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
   setSelectedGrant: (grant: Grant | null) => void;
+  runHealthCheck: () => Promise<HealthStatus>;
 }
 
 const getStoredData = (key: string, fallback: any) => {
@@ -118,8 +139,17 @@ const executeContractTx = async (
 
   const rpcUrl = getEnvVar('VITE_RPC_URL');
   const networkPassphrase = getEnvVar('VITE_NETWORK_PASSPHRASE');
-  if (!rpcUrl || !contractId) {
-    throw new Error('Contract configuration or RPC URL is missing.');
+  if (!rpcUrl) {
+    throw new Error('RPC URL is missing. Please define VITE_RPC_URL in your environment.');
+  }
+  if (!networkPassphrase) {
+    throw new Error('Network Passphrase is missing. Please define VITE_NETWORK_PASSPHRASE in your environment.');
+  }
+  if (!contractId) {
+    throw new Error('Contract ID is missing. Ensure your target contract has been deployed and set in the environment.');
+  }
+  if (!contractId.startsWith('C') || contractId.length !== 56) {
+    throw new Error(`Invalid Contract Address "${contractId}". Soroban contract IDs must start with 'C' and be 56 characters long.`);
   }
 
   const server = new rpc.Server(rpcUrl) as any;
@@ -201,6 +231,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   selectedGrantApps: [],
   toasts: [],
   loading: false,
+  health: null,
 
   addToast: (title, message, type = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -779,5 +810,121 @@ export const useDataStore = create<DataState>((set, get) => ({
         topRecipients
       }
     });
+  },
+
+  runHealthCheck: async (): Promise<HealthStatus> => {
+    const rpcUrl = getEnvVar('VITE_RPC_URL');
+    const network = getEnvVar('VITE_NETWORK_PASSPHRASE');
+    const registryId = getEnvVar('VITE_GRANT_REGISTRY_CONTRACT');
+    const applicationId = getEnvVar('VITE_GRANT_APPLICATION_CONTRACT');
+    const escrowId = getEnvVar('VITE_GRANT_ESCROW_CONTRACT');
+
+    const walletState = useWalletStore.getState();
+    const walletAvailable = !!(window as any).stellarPublicKey || !!(window as any).albedo;
+    const walletAddress = walletState.address || undefined;
+
+    let rpcReachable = false;
+    let latestLedger = 0;
+    let networkMatch = false;
+    let registryConnected = false;
+    let applicationConnected = false;
+    let escrowConnected = false;
+    let errorMsg = '';
+
+    if (rpcUrl) {
+      try {
+        const server = new rpc.Server(rpcUrl) as any;
+        const ledgerInfo = await server.getLatestLedger();
+        latestLedger = ledgerInfo.sequence || 0;
+        rpcReachable = true;
+        networkMatch = true;
+
+        if (registryId && registryId.startsWith('C') && registryId.length === 56) {
+          try {
+            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyTx = new TransactionBuilder(dummyAccount, {
+              fee: '100',
+              networkPassphrase: network
+            })
+              .addOperation(new Contract(registryId).call('get_grant', nativeToScVal(999999, { type: 'u32' })))
+              .setTimeout(0)
+              .build();
+            const sim = await server.simulateTransaction(dummyTx);
+            if (!rpc.Api.isSimulationError(sim)) {
+              registryConnected = true;
+            } else {
+              console.warn("Registry contract simulation failed:", sim.error);
+            }
+          } catch (e: any) {
+            console.warn("Registry contract connection check failed:", e);
+          }
+        }
+
+        if (applicationId && applicationId.startsWith('C') && applicationId.length === 56) {
+          try {
+            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyTx = new TransactionBuilder(dummyAccount, {
+              fee: '100',
+              networkPassphrase: network
+            })
+              .addOperation(new Contract(applicationId).call('get_application', nativeToScVal(999999, { type: 'u32' })))
+              .setTimeout(0)
+              .build();
+            const sim = await server.simulateTransaction(dummyTx);
+            if (!rpc.Api.isSimulationError(sim)) {
+              applicationConnected = true;
+            }
+          } catch (e: any) {
+            console.warn("Application contract connection check failed:", e);
+          }
+        }
+
+        if (escrowId && escrowId.startsWith('C') && escrowId.length === 56) {
+          try {
+            const dummyAccount = new Account('GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER', '0');
+            const dummyTx = new TransactionBuilder(dummyAccount, {
+              fee: '100',
+              networkPassphrase: network
+            })
+              .addOperation(new Contract(escrowId).call('get_escrow', nativeToScVal(999999, { type: 'u32' })))
+              .setTimeout(0)
+              .build();
+            const sim = await server.simulateTransaction(dummyTx);
+            if (!rpc.Api.isSimulationError(sim)) {
+              escrowConnected = true;
+            }
+          } catch (e: any) {
+            console.warn("Escrow contract connection check failed:", e);
+          }
+        }
+
+      } catch (err: any) {
+        errorMsg = err.message || 'Unknown RPC error';
+      }
+    } else {
+      errorMsg = 'VITE_RPC_URL environment variable is missing.';
+    }
+
+    const healthStatus: HealthStatus = {
+      walletAvailable,
+      rpcReachable,
+      registryConnected,
+      applicationConnected,
+      escrowConnected,
+      networkMatch,
+      latestLedger,
+      details: {
+        rpcUrl: rpcUrl || 'Missing',
+        network: network || 'Missing',
+        registryId: registryId || 'Missing',
+        applicationId: applicationId || 'Missing',
+        escrowId: escrowId || 'Missing',
+        walletAddress,
+        errorMsg: errorMsg || undefined
+      }
+    };
+
+    set({ health: healthStatus });
+    return healthStatus;
   }
 }));
