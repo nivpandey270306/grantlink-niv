@@ -13,13 +13,13 @@ console.log('----------------------------------------------------');
 try {
   // 1. Build optimized WASM binaries
   console.log('Step 1: Building optimized contract binaries...');
-  execSync('cargo build --target wasm32-unknown-unknown --release', { stdio: 'inherit' });
+  execSync('stellar contract build', { stdio: 'inherit' });
   console.log('Build complete.\n');
 
   // Paths to built WASM files
-  const registryWasm = 'target_build/wasm32-unknown-unknown/release/grant_registry.wasm';
-  const applicationWasm = 'target_build/wasm32-unknown-unknown/release/grant_application.wasm';
-  const escrowWasm = 'target_build/wasm32-unknown-unknown/release/grant_escrow.wasm';
+  const registryWasm = 'target/wasm32v1-none/release/grant_registry.wasm';
+  const applicationWasm = 'target/wasm32v1-none/release/grant_application.wasm';
+  const escrowWasm = 'target/wasm32v1-none/release/grant_escrow.wasm';
 
   // 2. Fetch admin public key (Source key)
   console.log('Step 2: Resolving source keys address...');
