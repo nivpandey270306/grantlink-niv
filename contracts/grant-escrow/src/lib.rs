@@ -1,8 +1,25 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, Vec, symbol_short, String};
 
-// Import grant-registry to use its types and client
-use grant_registry::{GrantRegistryContractClient, Grant};
+// No dependencies needed from workspace
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Grant {
+    pub id: u32,
+    pub owner: Address,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub amount: i128,
+    pub deadline: u64,
+    pub milestone_count: u32,
+    pub status: u32,
+}
+
+#[soroban_sdk::contractclient(name = "GrantRegistryContractClient")]
+pub trait GrantRegistryInterface {
+    fn get_grant(env: Env, id: u32) -> Option<Grant>;
+}
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
