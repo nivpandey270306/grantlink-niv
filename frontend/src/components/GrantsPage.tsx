@@ -21,6 +21,52 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
   const [txState, setTxState] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [txHash, setTxHash] = useState('');
 
+  const templates = [
+    {
+      id: 'dev_tooling',
+      label: 'Developer Tooling',
+      category: 'Technology',
+      title: 'Stellar Dev Tooling Grant',
+      description: 'Grant for developing open-source tools, developer SDKs, or API integrations on Stellar.',
+      amount: '50000',
+      milestones: 3,
+      deadlineOffsetMonths: 3
+    },
+    {
+      id: 'community_edu',
+      label: 'Community Education',
+      category: 'Education',
+      title: 'Soroban Community Onboarding Initiative',
+      description: 'Funding for building onboarding content, workshops, and educational programs to teach Soroban.',
+      amount: '15000',
+      milestones: 2,
+      deadlineOffsetMonths: 2
+    },
+    {
+      id: 'cleantech_accel',
+      label: 'CleanTech Accelerator',
+      category: 'Energy',
+      title: 'CleanTech Ecosystem Accelerator',
+      description: 'Large-scale grant for building climate-tech solutions or localized grid integrations on Stellar.',
+      amount: '120000',
+      milestones: 5,
+      deadlineOffsetMonths: 6
+    }
+  ];
+
+  const applyTemplate = (tpl: typeof templates[0]) => {
+    setTitle(tpl.title);
+    setDescription(tpl.description);
+    setCategory(tpl.category);
+    setAmount(tpl.amount);
+    setMilestones(tpl.milestones);
+    
+    const d = new Date();
+    d.setMonth(d.getMonth() + tpl.deadlineOffsetMonths);
+    setDeadline(d.toISOString().split('T')[0]);
+    addToast('Template Applied', `Form populated with "${tpl.label}" template.`, 'info');
+  };
+
   // Calculate estimated milestone schedule for preview
   const milestoneCountVal = Math.max(1, Math.min(10, milestones));
   const amountVal = parseFloat(amount) || 0;
@@ -158,6 +204,32 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
           {/* Main Form controls */}
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
             <h3 className="text-xl font-bold font-soria text-primary">New Grant Parameters</h3>
+            
+            {/* Quick Templates selector */}
+            <div className="bg-surface-container-low border border-outline-variant p-4 rounded space-y-3">
+              <span className="text-[10px] font-bold text-on-surface-variant uppercase font-inter tracking-wider">Quick Start Templates</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {templates.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => applyTemplate(tpl)}
+                    className="p-3 border border-outline-variant rounded hover:border-primary hover:bg-surface text-left transition-all flex flex-col gap-1 focus:outline-none bg-white"
+                  >
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-[11px] font-bold text-forest">{tpl.label}</span>
+                      <span className="px-1 py-0.5 rounded text-[8px] bg-primary bg-opacity-10 text-primary font-bold">{tpl.category}</span>
+                    </div>
+                    <span className="text-[9px] text-on-surface-variant font-inter leading-tight line-clamp-2 h-7">{tpl.description}</span>
+                    <div className="flex justify-between items-center text-[9px] font-mono mt-1 pt-1 border-t border-dashed border-outline-variant text-on-surface-variant w-full">
+                      <span>{tpl.amount} XLM</span>
+                      <span>{tpl.milestones} Phases</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-on-surface" htmlFor="title">Grant Title *</label>
