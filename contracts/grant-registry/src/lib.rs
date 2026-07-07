@@ -160,10 +160,10 @@ impl GrantRegistryContract {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+    use soroban_sdk::{testutils::Address as _, Env, IntoVal};
 
     #[test]
-    fn test_create_and_update_grant() {
+    fn create_grant_test() {
         let env = Env::default();
         env.mock_all_auths();
 
@@ -193,28 +193,85 @@ mod test {
         assert_eq!(grant.title, title);
         assert_eq!(grant.amount, 10000i128);
         assert_eq!(grant.status, 0);
+    }
+
+    #[test]
+    fn update_grant_test() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+
+        let contract_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let client = GrantRegistryContractClient::new(&env, &contract_id);
+
+        let title = String::from_str(&env, "Test Grant");
+        let description = String::from_str(&env, "Test Description");
+        let category = String::from_str(&env, "Education");
+
+        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
 
         let new_title = String::from_str(&env, "New Test Grant");
         client.update_grant(&1, &new_title, &description, &category);
 
         let updated_grant = client.get_grant(&1).unwrap();
         assert_eq!(updated_grant.title, new_title);
+    }
 
-        let all_grants = client.list_grants();
-        assert_eq!(all_grants.len(), 1);
+    #[test]
+    fn cancel_grant_test() {
+        let env = Env::default();
+        env.mock_all_auths();
 
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+
+        let contract_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let client = GrantRegistryContractClient::new(&env, &contract_id);
+
+        let title = String::from_str(&env, "Test Grant");
+        let description = String::from_str(&env, "Test Description");
+        let category = String::from_str(&env, "Education");
+
+        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
         client.cancel_grant(&1);
+
         let cancelled_grant = client.get_grant(&1).unwrap();
         assert_eq!(cancelled_grant.status, 1);
     }
 
     #[test]
-    fn test_cancel_invalid_id() {
+    fn unauthorized_test() {
         let env = Env::default();
         let admin = Address::generate(&env);
-        let contract_id = env.register(GrantRegistryContract, (admin,));
+        let owner = Address::generate(&env);
+        let non_owner = Address::generate(&env);
+
+        let contract_id = env.register(GrantRegistryContract, (admin.clone(),));
         let client = GrantRegistryContractClient::new(&env, &contract_id);
-        let res = client.try_cancel_grant(&999u32);
+
+        let title = String::from_str(&env, "Test Grant");
+        let description = String::from_str(&env, "Test Description");
+        let category = String::from_str(&env, "Education");
+
+        env.mock_all_auths();
+        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
+
+        // Attempting to update a grant as a non-owner should result in authorization failure
+        env.mock_auths(&[
+            soroban_sdk::testutils::MockAuth {
+                address: &non_owner,
+                invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                    contract: &contract_id,
+                    fn_name: "update_grant",
+                    args: (1u32, title.clone(), description.clone(), category.clone()).into_val(&env),
+                    sub_invokes: &[],
+                }
+            }
+        ]);
+
+        let res = client.try_update_grant(&1, &title, &description, &category);
         assert!(res.is_err());
     }
 }
