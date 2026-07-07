@@ -32,14 +32,7 @@ export function ApplicationsPage() {
     setSubmitting(true);
 
     try {
-      // Simulate Soroban submit_application call delay
-      await new Promise(r => setTimeout(r, 1500));
-      
-      const onChainId = Math.floor(Math.random() * 1000) + 10;
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
       await submitApplication({
-        onChainId,
         grantOnChainId: Number(selectedGrantId),
         applicant: address,
         name: applicantName,
@@ -48,16 +41,6 @@ export function ApplicationsPage() {
         requestedAmount: parseFloat(requestedAmt),
       });
 
-      // Log event
-      await addEvent({
-        type: 'ApplicationSubmitted',
-        txHash: hash,
-        grantId: Number(selectedGrantId),
-        details: { applicant: address, amount: parseFloat(requestedAmt) }
-      });
-
-      addToast('Proposal Submitted', `Successfully sent proposal on-chain. ID: #${onChainId}`, 'success');
-      
       // Reset
       setApplicantName('');
       setProjectTitle('');
@@ -79,23 +62,25 @@ export function ApplicationsPage() {
     }
     
     try {
-      // Simulate escrow linking delay
-      addToast('Initializing Escrow', 'Simulating cross-contract call to GrantEscrow...', 'info');
-      await new Promise(r => setTimeout(r, 2000));
-      
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      
-      // Call store approval
-      await approveApplication(appId, grantId);
+      const targetGrant = grants.find(g => g.onChainId === grantId);
+      const milestoneCount = targetGrant ? targetGrant.milestoneCount : 3;
 
-      // Log event
-      await addEvent({
-        type: 'ApplicationApproved',
-        txHash: hash,
-        grantId,
-        details: { appId, amount: requestedAmount }
-      });
+      const milestoneAmounts = [];
+      let remaining = requestedAmount;
+      for (let i = 0; i < milestoneCount; i++) {
+        let portion = 0;
+        if (i === milestoneCount - 1) {
+          portion = remaining;
+        } else if (i === 0) {
+          portion = Math.round(requestedAmount * 0.3);
+        } else {
+          portion = Math.round((requestedAmount * 0.7) / (milestoneCount - 1));
+        }
+        milestoneAmounts.push(portion);
+        remaining -= portion;
+      }
 
+      await approveApplication(appId, grantId, milestoneAmounts);
     } catch (err: any) {
       addToast('Approval Failed', err.message, 'error');
     }
@@ -103,16 +88,7 @@ export function ApplicationsPage() {
 
   const handleReject = async (appId: number, grantId: number) => {
     try {
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
       await rejectApplication(appId, grantId);
-      
-      // Log event
-      await addEvent({
-        type: 'ApplicationRejected',
-        txHash: hash,
-        grantId,
-        details: { appId }
-      });
     } catch (err: any) {
       addToast('Action Failed', err.message, 'error');
     }

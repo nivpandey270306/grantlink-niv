@@ -61,15 +61,7 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
     setTxState('pending');
     
     try {
-      // Simulate contract invoke deploy time delay
-      await new Promise(r => setTimeout(r, 2000));
-      
-      const onChainId = grants.length + 1;
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      
-      // Store in DB
-      await createGrant({
-        onChainId,
+      const hash = await createGrant({
         title,
         description,
         category,
@@ -80,17 +72,8 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
         status: 0,
       });
 
-      // Log event
-      await addEvent({
-        type: 'GrantCreated',
-        txHash: hash,
-        grantId: onChainId,
-        details: { owner: address, amount: amountVal }
-      });
-
       setTxHash(hash);
       setTxState('success');
-      addToast('Grant Created Successfully', `On-Chain transaction confirmed. ID: #${onChainId}`, 'success');
 
       // Reset
       setTitle('');
@@ -102,12 +85,12 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
       setTimeout(() => {
         setTxState('idle');
         setShowForm(false);
-      }, 2000);
+      }, 3000);
 
     } catch (err: any) {
       setTxState('failed');
       addToast('Transaction Failed', err.message, 'error');
-      setTimeout(() => setTxState('idle'), 3000);
+      setTimeout(() => setTxState('idle'), 4000);
     }
   };
 

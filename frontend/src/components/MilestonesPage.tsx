@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useDataStore, Grant, Application } from '../store/data';
+import { useDataStore, Grant, Application, NATIVE_TOKEN_ADDRESS } from '../store/data';
 import { useWalletStore } from '../store/wallet';
 
 export function MilestonesPage() {
-  const { grants, selectedGrant, selectedGrantApps, events, addEvent, addToast } = useDataStore();
+  const { grants, selectedGrant, selectedGrantApps, events, depositFunds, releaseMilestone, refundGrant, addToast } = useDataStore();
   const { connected, address } = useWalletStore();
 
   const [escrowState, setEscrowState] = useState<any | null>(null);
@@ -72,17 +72,7 @@ export function MilestonesPage() {
     addToast('Initiating Deposit', 'Calling deposit_funds on GrantEscrow contract...', 'info');
 
     try {
-      await new Promise(r => setTimeout(r, 2000));
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
-      await addEvent({
-        type: 'FundsDeposited',
-        txHash: hash,
-        grantId: selectedGrant.onChainId,
-        details: { token: 'Wrapped XLM', amount: selectedGrant.amount }
-      });
-
-      addToast('Deposit Confirmed', `${selectedGrant.amount} XLM locked in escrow contract.`, 'success');
+      await depositFunds(selectedGrant.onChainId, NATIVE_TOKEN_ADDRESS);
     } catch (err: any) {
       addToast('Deposit Failed', err.message, 'error');
     } finally {
@@ -116,17 +106,7 @@ export function MilestonesPage() {
     addToast('Processing Release', `Invoking release_milestone(${selectedGrant.onChainId}, ${idx}) in contract...`, 'info');
 
     try {
-      await new Promise(r => setTimeout(r, 2000));
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
-      await addEvent({
-        type: 'MilestoneReleased',
-        txHash: hash,
-        grantId: selectedGrant.onChainId,
-        details: { milestoneIdx: idx, amount: amt, recipient: escrowState.recipient }
-      });
-
-      addToast('Milestone Funds Released', `Transfer confirmed: ${amt} XLM sent to recipient.`, 'success');
+      await releaseMilestone(selectedGrant.onChainId, idx, amt);
     } catch (err: any) {
       addToast('Release Failed', err.message, 'error');
     } finally {
@@ -145,17 +125,7 @@ export function MilestonesPage() {
     addToast('Triggering Refund', 'Refunding escrow funds back to owner wallet...', 'info');
 
     try {
-      await new Promise(r => setTimeout(r, 2000));
-      const hash = '0x' + Array.from({length:64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
-      await addEvent({
-        type: 'FundsRefunded',
-        txHash: hash,
-        grantId: selectedGrant.onChainId,
-        details: { amount: selectedGrant.amount }
-      });
-
-      addToast('Grant Refund Complete', 'Remaining escrow assets returned to owner wallet.', 'success');
+      await refundGrant(selectedGrant.onChainId);
     } catch (err: any) {
       addToast('Refund Failed', err.message, 'error');
     } finally {
@@ -226,8 +196,8 @@ export function MilestonesPage() {
               <span className="text-on-surface-variant font-semibold">Disbursed Funds:</span>
               <strong className="font-mono text-forest font-bold">
                 {escrowState.milestoneAmounts
-                  .filter((_, i) => escrowState.milestoneReleased[i])
-                  .reduce((sum, amt) => sum + amt, 0)
+                  .filter((_: any, i: number) => escrowState.milestoneReleased[i])
+                  .reduce((sum: number, amt: number) => sum + amt, 0)
                   .toLocaleString()} XLM
               </strong>
             </div>
