@@ -51,13 +51,14 @@ export function AnalyticsPage() {
   const statusData = analytics?.grantStatus?.length ? analytics.grantStatus : defaultGrantStatus;
   const appStatusData = analytics?.applicationStatus?.length ? analytics.applicationStatus : defaultAppStatus;
 
-  // Add mock top recipients
-  const topRecipients = [
+  // Add top recipients
+  const defaultTopRecipients = [
     { name: 'EcoFarm Co-op', title: 'Solar Irrigation Wells', amount: 350000, category: 'Agriculture' },
     { name: 'EduFund International', title: 'Rural Classroom Kits', amount: 180000, category: 'Education' },
     { name: 'MedLink Clinics', title: 'Cold-chain Vaccine Storage', amount: 280000, category: 'Healthcare' },
     { name: 'CleanWater NGO', title: 'Gravity Filter Pipelines', amount: 120000, category: 'Technology' }
   ];
+  const topRecipients = analytics?.topRecipients?.length ? analytics.topRecipients : defaultTopRecipients;
 
   return (
     <div className="flex flex-col gap-6">
@@ -169,7 +170,7 @@ export function AnalyticsPage() {
             </tr>
           </thead>
           <tbody>
-            {topRecipients.map((rec, idx) => (
+            {topRecipients.map((rec: any, idx: any) => (
               <tr key={idx} className="border-b border-outline-variant hover:bg-surface transition-colors font-inter text-xs">
                 <td className="p-4 font-bold text-forest">{rec.name}</td>
                 <td className="p-4 text-on-surface-variant">{rec.title}</td>
