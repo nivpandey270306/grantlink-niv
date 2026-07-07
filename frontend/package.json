@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ci": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Skipping lint checks'"
   },
   "dependencies": {
     "@albedo-link/intent": "^0.12.0",

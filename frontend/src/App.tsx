@@ -13,13 +13,27 @@ import { AnalyticsPage } from './components/AnalyticsPage';
 import { TransactionPage } from './components/TransactionPage';
 
 export default function App() {
-  const { connected, connectFreighter, connectAlbedo } = useWalletStore();
-  const { selectedGrant, setSelectedGrant } = useDataStore();
+  const { connectFreighter, connectAlbedo } = useWalletStore();
+  const { setSelectedGrant, fetchGrants, fetchApplications, fetchEvents } = useDataStore();
   
   const [showLanding, setShowLanding] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSendXlmModal, setShowSendXlmModal] = useState(false);
+
+  React.useEffect(() => {
+    // Initial fetch
+    fetchGrants();
+    fetchApplications();
+    fetchEvents();
+
+    // Poll events every 5 seconds
+    const interval = setInterval(() => {
+      fetchEvents();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSelectGrant = (grant: any) => {
     setSelectedGrant(grant);
