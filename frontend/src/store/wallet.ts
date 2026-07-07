@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { isConnected, getAddress, signTransaction } from '@stellar/freighter-api';
+import { isConnected, requestAccess, signTransaction, getNetworkDetails } from '@stellar/freighter-api';
 import albedo from '@albedo-link/intent';
 
 interface WalletState {
@@ -32,7 +32,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const connectedResult = await isConnected();
-      // Handle both boolean and object format
       const isInstalled = typeof connectedResult === 'boolean' 
         ? connectedResult 
         : connectedResult?.isConnected;
@@ -41,15 +40,15 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         throw new Error('Freighter extension is not installed');
       }
 
-      const addressResult = await getAddress();
-      // Handle both string and object format
-      const addr = typeof addressResult === 'string'
-        ? addressResult
-        : addressResult?.address;
+      // requestAccess() is the recommended method to prompt connection
+      const accessResult = await requestAccess();
+      const addr = typeof accessResult === 'string'
+        ? accessResult
+        : accessResult?.address;
 
-      const errMsg = typeof addressResult === 'string'
+      const errMsg = typeof accessResult === 'string'
         ? null
-        : addressResult?.error;
+        : accessResult?.error;
 
       if (errMsg) {
         throw new Error(errMsg);
@@ -59,11 +58,22 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         throw new Error('Freighter access denied. Please open your extension and log in.');
       }
 
+      // Check selected network in Freighter to notify user
+      let freighterNetwork = 'TESTNET';
+      try {
+        const netDetails = await getNetworkDetails();
+        if (netDetails && netDetails.network) {
+          freighterNetwork = netDetails.network.toUpperCase();
+        }
+      } catch (netErr) {
+        console.warn('Failed to detect network details:', netErr);
+      }
+
       set({
         connected: true,
         address: addr,
         walletType: 'freighter',
-        network: 'TESTNET',
+        network: freighterNetwork,
         loading: false,
       });
 
@@ -76,7 +86,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   connectAlbedo: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await albedo.publicKeys({});
+      const res = await albedo.publicKey({});
       if (!res.pubkey) {
         throw new Error('Albedo wallet returned no public key');
       }
@@ -113,8 +123,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         return;
       }
       const data = await response.json();
-      const nativeBalance = data.balances.find((b: any) => b.asset_type === 'native');
-      set({ balance: nativeBalance ? parseFloat(nativeBalance.balance).toFixed(2) + ' XLM' : '0 XLM' });
+      if (data && data.balances) {
+        const nativeBalance = data.balances.find((b: any) => b.asset_type === 'native');
+        set({ balance: nativeBalance ? parseFloat(nativeBalance.balance).toFixed(2) + ' XLM' : '0 XLM' });
+      } else {
+        set({ balance: '0 XLM' });
+      }
     } catch (err) {
       console.error('Failed to fetch balance', err);
     }
@@ -146,7 +160,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const passphrase = network === 'TESTNET' 
         ? 'Test SDF Network ; September 2015' 
         : 'Public Global Stellar Network ; October 2015';
-      const signedResult = await signTransaction(xdr, { networkPassphrase: passphrase });
+      const signedResult = await signTransaction(xdr, { 
+        networkPassphrase: passphrase,
+        network: network === 'TESTNET' ? 'TESTNET' : 'PUBLIC'
+      } as any);
+      
       const signedXdr = typeof signedResult === 'string'
         ? signedResult
         : signedResult?.signedTxXdr;
