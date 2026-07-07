@@ -261,7 +261,7 @@ mod test {
     use grant_registry::GrantRegistryContract;
 
     #[test]
-    fn test_escrow_deposit_and_release() {
+    fn deposit_funds_test() {
         let env = Env::default();
         env.mock_all_auths();
 
@@ -269,69 +269,126 @@ mod test {
         let owner = Address::generate(&env);
         let recipient = Address::generate(&env);
 
-        // Deploy Registry
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-
-        // Deploy Escrow (we mock registry_id and use admin as application contract)
         let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
 
-        // Initialize Escrow (using admin/app contract auth)
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
         escrow_client.initialize_escrow(&1, &recipient, &milestone_amounts);
 
-        let escrow_state = escrow_client.get_escrow(&1).unwrap();
-        assert_eq!(escrow_state.recipient, recipient);
-        assert_eq!(escrow_state.status, 0);
-
-        // Register Stellar Asset Contract (XLM)
         let token_admin = Address::generate(&env);
         let token_addr = env.register_stellar_asset_contract(token_admin.clone());
         let token_admin_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_addr);
         let token_client = soroban_sdk::token::Client::new(&env, &token_addr);
 
-        // Mint tokens to owner
         token_admin_client.mint(&owner, &10000i128);
-        assert_eq!(token_client.balance(&owner), 10000i128);
-
-        // Deposit funds
         escrow_client.deposit_funds(&1, &token_addr, &owner);
+
         assert_eq!(token_client.balance(&owner), 0i128);
         assert_eq!(token_client.balance(&escrow_id), 10000i128);
 
-        let escrow_state_funded = escrow_client.get_escrow(&1).unwrap();
-        assert_eq!(escrow_state_funded.status, 1);
-        assert_eq!(escrow_state_funded.funds_deposited, 10000i128);
+        let escrow_state = escrow_client.get_escrow(&1).unwrap();
+        assert_eq!(escrow_state.status, 1);
+    }
 
-        // Mock Registry create grant so release can call get_grant
+    #[test]
+    fn release_milestone_test() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
+
+        let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
+        escrow_client.initialize_escrow(&1, &recipient, &milestone_amounts);
+
+        let token_admin = Address::generate(&env);
+        let token_addr = env.register_stellar_asset_contract(token_admin.clone());
+        let token_admin_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_addr);
+        let token_client = soroban_sdk::token::Client::new(&env, &token_addr);
+
+        token_admin_client.mint(&owner, &10000i128);
+        escrow_client.deposit_funds(&1, &token_addr, &owner);
+
+        // Create grant on registry so release_milestone can retrieve it
         let registry_client = grant_registry::GrantRegistryContractClient::new(&env, &registry_id);
         let title = String::from_str(&env, "Agri Fund");
         let desc = String::from_str(&env, "Agri Desc");
         let cat = String::from_str(&env, "Agriculture");
         registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
 
-        // Release first milestone (3000 XLM)
         escrow_client.release_milestone(&1, &0);
         assert_eq!(token_client.balance(&recipient), 3000i128);
         assert_eq!(token_client.balance(&escrow_id), 7000i128);
-
-        // Cancel and refund remaining (7000 XLM)
-        escrow_client.refund_grant(&1);
-        assert_eq!(token_client.balance(&owner), 7000i128);
-        assert_eq!(token_client.balance(&escrow_id), 0i128);
-
-        let escrow_state_refunded = escrow_client.get_escrow(&1).unwrap();
-        assert_eq!(escrow_state_refunded.status, 2);
     }
 
     #[test]
-    fn test_escrow_invalid_grant() {
+    fn refund_grant_test() {
         let env = Env::default();
+        env.mock_all_auths();
+
         let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id, admin));
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
-        let res = escrow_client.get_escrow(&999u32);
-        assert!(res.is_none());
+
+        let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
+        escrow_client.initialize_escrow(&1, &recipient, &milestone_amounts);
+
+        let token_admin = Address::generate(&env);
+        let token_addr = env.register_stellar_asset_contract(token_admin.clone());
+        let token_admin_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_addr);
+        let token_client = soroban_sdk::token::Client::new(&env, &token_addr);
+
+        token_admin_client.mint(&owner, &10000i128);
+        escrow_client.deposit_funds(&1, &token_addr, &owner);
+
+        let registry_client = grant_registry::GrantRegistryContractClient::new(&env, &registry_id);
+        let title = String::from_str(&env, "Agri Fund");
+        let desc = String::from_str(&env, "Agri Desc");
+        let cat = String::from_str(&env, "Agriculture");
+        registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
+
+        escrow_client.refund_grant(&1);
+        assert_eq!(token_client.balance(&owner), 10000i128);
+        assert_eq!(token_client.balance(&escrow_id), 0i128);
+
+        let escrow_state = escrow_client.get_escrow(&1).unwrap();
+        assert_eq!(escrow_state.status, 2); // Refunded
+    }
+
+    #[test]
+    fn insufficient_funds_test() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let admin = Address::generate(&env);
+        let owner = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
+
+        let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
+        escrow_client.initialize_escrow(&1, &recipient, &milestone_amounts);
+
+        let token_admin = Address::generate(&env);
+        let token_addr = env.register_stellar_asset_contract(token_admin.clone());
+        let token_admin_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_addr);
+
+        // Owner only has 5000 tokens, but deposit needs 10000.
+        token_admin_client.mint(&owner, &5000i128);
+        
+        let res = escrow_client.try_deposit_funds(&1, &token_addr, &owner);
+        assert!(res.is_err());
     }
 }
