@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, Vec, symbol_short, String};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Vec,
+};
 
 // No dependencies needed from workspace
 #[contracttype]
@@ -42,7 +44,7 @@ pub struct EscrowState {
     pub milestone_released: Vec<bool>,
     pub funds_deposited: i128,
     pub token: Option<Address>, // Stellar Asset Contract Address
-    pub status: u32, // 0 = Initialized, 1 = Funded, 2 = Refunded, 3 = Completed
+    pub status: u32,            // 0 = Initialized, 1 = Funded, 2 = Refunded, 3 = Completed
 }
 
 #[contracttype]
@@ -58,10 +60,19 @@ pub struct GrantEscrowContract;
 
 #[contractimpl]
 impl GrantEscrowContract {
-    pub fn __constructor(env: Env, admin: Address, registry_contract: Address, application_contract: Address) {
+    pub fn __constructor(
+        env: Env,
+        admin: Address,
+        registry_contract: Address,
+        application_contract: Address,
+    ) {
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::RegistryContract, &registry_contract);
-        env.storage().instance().set(&DataKey::ApplicationContract, &application_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::RegistryContract, &registry_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::ApplicationContract, &application_contract);
     }
 
     /// Admin-only: update the trusted application contract address.
@@ -73,7 +84,9 @@ impl GrantEscrowContract {
             .get(&DataKey::Admin)
             .expect("Admin not set");
         admin.require_auth();
-        env.storage().instance().set(&DataKey::ApplicationContract, &application_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::ApplicationContract, &application_contract);
     }
 
     pub fn initialize_escrow(
@@ -109,8 +122,12 @@ impl GrantEscrowContract {
             status: 0,
         };
 
-        env.storage().persistent().set(&DataKey::Escrow(grant_id), &escrow);
-        env.storage().persistent().extend_ttl(&DataKey::Escrow(grant_id), 17280, 518400);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Escrow(grant_id), &escrow);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow(grant_id), 17280, 518400);
 
         Ok(())
     }
@@ -146,22 +163,18 @@ impl GrantEscrowContract {
         escrow.token = Some(token);
         escrow.status = 1; // Funded
 
-        env.storage().persistent().set(&DataKey::Escrow(grant_id), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Escrow(grant_id), &escrow);
 
         // Emit Event
-        env.events().publish(
-            (symbol_short!("deposit"), funder, grant_id),
-            total_amount,
-        );
+        env.events()
+            .publish((symbol_short!("deposit"), funder, grant_id), total_amount);
 
         Ok(())
     }
 
-    pub fn release_milestone(
-        env: Env,
-        grant_id: u32,
-        milestone_idx: u32,
-    ) -> Result<(), Error> {
+    pub fn release_milestone(env: Env, grant_id: u32, milestone_idx: u32) -> Result<(), Error> {
         let mut escrow: EscrowState = env
             .storage()
             .persistent()
@@ -190,7 +203,7 @@ impl GrantEscrowContract {
 
         let registry_client = GrantRegistryContractClient::new(&env, &registry_addr);
         let grant_opt = registry_client.get_grant(&grant_id);
-        
+
         let grant = grant_opt.ok_or(Error::Unauthorized)?;
         grant.owner.require_auth();
 
@@ -198,7 +211,11 @@ impl GrantEscrowContract {
         let token_addr = escrow.token.as_ref().ok_or(Error::InvalidStatus)?;
         let token_client = soroban_sdk::token::Client::new(&env, token_addr);
 
-        token_client.transfer(&env.current_contract_address(), &escrow.recipient, &amount_to_release);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &escrow.recipient,
+            &amount_to_release,
+        );
 
         escrow.milestone_released.set(milestone_idx, true);
 
@@ -215,11 +232,18 @@ impl GrantEscrowContract {
             escrow.status = 3; // Completed
         }
 
-        env.storage().persistent().set(&DataKey::Escrow(grant_id), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Escrow(grant_id), &escrow);
 
         // Emit Event
         env.events().publish(
-            (symbol_short!("released"), escrow.recipient.clone(), grant_id, milestone_idx),
+            (
+                symbol_short!("released"),
+                escrow.recipient.clone(),
+                grant_id,
+                milestone_idx,
+            ),
             amount_to_release,
         );
 
@@ -245,7 +269,9 @@ impl GrantEscrowContract {
             .ok_or(Error::Unauthorized)?;
 
         let registry_client = GrantRegistryContractClient::new(&env, &registry_addr);
-        let grant = registry_client.get_grant(&grant_id).ok_or(Error::Unauthorized)?;
+        let grant = registry_client
+            .get_grant(&grant_id)
+            .ok_or(Error::Unauthorized)?;
         grant.owner.require_auth();
 
         // Calculate remaining funds
@@ -259,11 +285,17 @@ impl GrantEscrowContract {
         if remaining_amount > 0 {
             let token_addr = escrow.token.as_ref().ok_or(Error::InvalidStatus)?;
             let token_client = soroban_sdk::token::Client::new(&env, token_addr);
-            token_client.transfer(&env.current_contract_address(), &grant.owner, &remaining_amount);
+            token_client.transfer(
+                &env.current_contract_address(),
+                &grant.owner,
+                &remaining_amount,
+            );
         }
 
         escrow.status = 2; // Refunded
-        env.storage().persistent().set(&DataKey::Escrow(grant_id), &escrow);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Escrow(grant_id), &escrow);
 
         // Emit Event
         env.events().publish(
@@ -286,8 +318,8 @@ impl GrantEscrowContract {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
     use grant_registry::GrantRegistryContract;
+    use soroban_sdk::{testutils::Address as _, Env};
 
     #[test]
     fn deposit_funds_test() {
@@ -299,7 +331,10 @@ mod test {
         let recipient = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_id = env.register(
+            GrantEscrowContract,
+            (admin.clone(), registry_id.clone(), admin.clone()),
+        );
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
 
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
@@ -330,7 +365,10 @@ mod test {
         let recipient = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_id = env.register(
+            GrantEscrowContract,
+            (admin.clone(), registry_id.clone(), admin.clone()),
+        );
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
 
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
@@ -366,7 +404,10 @@ mod test {
         let recipient = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_id = env.register(
+            GrantEscrowContract,
+            (admin.clone(), registry_id.clone(), admin.clone()),
+        );
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
 
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
@@ -404,7 +445,10 @@ mod test {
         let recipient = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let escrow_id = env.register(
+            GrantEscrowContract,
+            (admin.clone(), registry_id.clone(), admin.clone()),
+        );
         let escrow_client = GrantEscrowContractClient::new(&env, &escrow_id);
 
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
@@ -416,7 +460,7 @@ mod test {
 
         // Owner only has 5000 tokens, but deposit needs 10000.
         token_admin_client.mint(&owner, &5000i128);
-        
+
         let res = escrow_client.try_deposit_funds(&1, &token_addr, &owner);
         assert!(res.is_err());
     }

@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, String, Vec, symbol_short};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Vec,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -53,7 +55,11 @@ impl GrantRegistryContract {
     ) -> u32 {
         owner.require_auth();
 
-        let mut next_id: u32 = env.storage().instance().get(&DataKey::NextGrantId).unwrap_or(1);
+        let mut next_id: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::NextGrantId)
+            .unwrap_or(1);
         let grant = Grant {
             id: next_id,
             owner: owner.clone(),
@@ -66,20 +72,24 @@ impl GrantRegistryContract {
             status: 0,
         };
 
-        env.storage().persistent().set(&DataKey::Grant(next_id), &grant);
-        
+        env.storage()
+            .persistent()
+            .set(&DataKey::Grant(next_id), &grant);
+
         // Extend TTL
-        env.storage().persistent().extend_ttl(&DataKey::Grant(next_id), 17280, 518400);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Grant(next_id), 17280, 518400);
 
         next_id += 1;
-        env.storage().instance().set(&DataKey::NextGrantId, &next_id);
+        env.storage()
+            .instance()
+            .set(&DataKey::NextGrantId, &next_id);
         env.storage().instance().extend_ttl(17280, 518400);
 
         // Emit Event
-        env.events().publish(
-            (symbol_short!("created"), owner, next_id - 1),
-            amount,
-        );
+        env.events()
+            .publish((symbol_short!("created"), owner, next_id - 1), amount);
 
         next_id - 1
     }
@@ -104,13 +114,13 @@ impl GrantRegistryContract {
         grant.category = category;
 
         env.storage().persistent().set(&DataKey::Grant(id), &grant);
-        env.storage().persistent().extend_ttl(&DataKey::Grant(id), 17280, 518400);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Grant(id), 17280, 518400);
 
         // Emit Event
-        env.events().publish(
-            (symbol_short!("updated"), grant.owner, id),
-            (),
-        );
+        env.events()
+            .publish((symbol_short!("updated"), grant.owner, id), ());
 
         Ok(())
     }
@@ -130,13 +140,13 @@ impl GrantRegistryContract {
 
         grant.status = 1; // Cancelled
         env.storage().persistent().set(&DataKey::Grant(id), &grant);
-        env.storage().persistent().extend_ttl(&DataKey::Grant(id), 17280, 518400);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Grant(id), 17280, 518400);
 
         // Emit Event
-        env.events().publish(
-            (symbol_short!("cancelled"), grant.owner, id),
-            (),
-        );
+        env.events()
+            .publish((symbol_short!("cancelled"), grant.owner, id), ());
 
         Ok(())
     }
@@ -146,10 +156,18 @@ impl GrantRegistryContract {
     }
 
     pub fn list_grants(env: Env) -> Vec<Grant> {
-        let next_id: u32 = env.storage().instance().get(&DataKey::NextGrantId).unwrap_or(1);
+        let next_id: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::NextGrantId)
+            .unwrap_or(1);
         let mut grants = Vec::new(&env);
         for id in 1..next_id {
-            if let Some(grant) = env.storage().persistent().get::<DataKey, Grant>(&DataKey::Grant(id)) {
+            if let Some(grant) = env
+                .storage()
+                .persistent()
+                .get::<DataKey, Grant>(&DataKey::Grant(id))
+            {
                 grants.push_back(grant);
             }
         }
@@ -210,7 +228,15 @@ mod test {
         let description = String::from_str(&env, "Test Description");
         let category = String::from_str(&env, "Education");
 
-        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
+        client.create_grant(
+            &owner,
+            &title,
+            &description,
+            &category,
+            &10000i128,
+            &1000u64,
+            &3u32,
+        );
 
         let new_title = String::from_str(&env, "New Test Grant");
         client.update_grant(&1, &new_title, &description, &category);
@@ -234,7 +260,15 @@ mod test {
         let description = String::from_str(&env, "Test Description");
         let category = String::from_str(&env, "Education");
 
-        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
+        client.create_grant(
+            &owner,
+            &title,
+            &description,
+            &category,
+            &10000i128,
+            &1000u64,
+            &3u32,
+        );
         client.cancel_grant(&1);
 
         let cancelled_grant = client.get_grant(&1).unwrap();
@@ -256,20 +290,26 @@ mod test {
         let category = String::from_str(&env, "Education");
 
         env.mock_all_auths();
-        client.create_grant(&owner, &title, &description, &category, &10000i128, &1000u64, &3u32);
+        client.create_grant(
+            &owner,
+            &title,
+            &description,
+            &category,
+            &10000i128,
+            &1000u64,
+            &3u32,
+        );
 
         // Attempting to update a grant as a non-owner should result in authorization failure
-        env.mock_auths(&[
-            soroban_sdk::testutils::MockAuth {
-                address: &non_owner,
-                invoke: &soroban_sdk::testutils::MockAuthInvoke {
-                    contract: &contract_id,
-                    fn_name: "update_grant",
-                    args: (1u32, title.clone(), description.clone(), category.clone()).into_val(&env),
-                    sub_invokes: &[],
-                }
-            }
-        ]);
+        env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+            address: &non_owner,
+            invoke: &soroban_sdk::testutils::MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "update_grant",
+                args: (1u32, title.clone(), description.clone(), category.clone()).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
 
         let res = client.try_update_grant(&1, &title, &description, &category);
         assert!(res.is_err());
