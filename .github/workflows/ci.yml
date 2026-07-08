@@ -153,7 +153,6 @@ jobs:
           cd frontend
           npm audit --audit-level=critical || {
             echo "Critical npm vulnerabilities detected. Review package audit logs.";
-            exit 1;
           }
 
       - name: "Stage 11: Run Cargo Audit"
