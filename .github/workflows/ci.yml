@@ -40,16 +40,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Run GrantRegistry tests
-        run: cargo test -p grant-registry --target-dir target -- --nocapture
-        working-directory: ./contracts
-
-      - name: Run GrantApplication tests
-        run: cargo test -p grant-application --target-dir target -- --nocapture
-        working-directory: ./contracts
-
-      - name: Run GrantEscrow tests
-        run: cargo test -p grant-escrow --target-dir target -- --nocapture
+      - name: Run cargo tests
+        run: cargo test --target-dir target -- --nocapture
         working-directory: ./contracts
 
       - name: Build contract WASM binaries
@@ -103,11 +95,11 @@ jobs:
       - name: Build production bundle
         run: npm run build
         env:
-          VITE_RPC_URL: "https://soroban-testnet.stellar.org"
-          VITE_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
-          VITE_GRANT_REGISTRY_CONTRACT: "CCCGR7RA7SMWKF77C6H34I7Q6QFO2N2OUA2DETSSQE5NFN3WYY4HPUWW"
-          VITE_GRANT_APPLICATION_CONTRACT: "CAQKHWMBEMXXO5HESSKPT6QADNC6PLUQYSEJIIULNM35I5HIZBFHUGUR"
-          VITE_GRANT_ESCROW_CONTRACT: "CARO7F4WV5576NQYYDMIEHXZLU4CWHPSGCA4GRYSTEQY677RHLHIJGSB"
+          VITE_RPC_URL: ${{ secrets.VITE_RPC_URL || 'https://soroban-testnet.stellar.org' }}
+          VITE_NETWORK_PASSPHRASE: ${{ secrets.VITE_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015' }}
+          VITE_GRANT_REGISTRY_CONTRACT: ${{ secrets.VITE_GRANT_REGISTRY_CONTRACT || 'CCCGR7RA7SMWKF77C6H34I7Q6QFO2N2OUA2DETSSQE5NFN3WYY4HPUWW' }}
+          VITE_GRANT_APPLICATION_CONTRACT: ${{ secrets.VITE_GRANT_APPLICATION_CONTRACT || 'CAQKHWMBEMXXO5HESSKPT6QADNC6PLUQYSEJIIULNM35I5HIZBFHUGUR' }}
+          VITE_GRANT_ESCROW_CONTRACT: ${{ secrets.VITE_GRANT_ESCROW_CONTRACT || 'CARO7F4WV5576NQYYDMIEHXZLU4CWHPSGCA4GRYSTEQY677RHLHIJGSB' }}
           VITE_FREIGHTER_ENABLED: "true"
         # Fails CI if TypeScript compilation or Vite build fails
 
@@ -116,50 +108,34 @@ jobs:
           ls -lh dist/
           ls -lh dist/assets/
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: frontend/dist
+
   # ─────────────────────────────────────────
-  # JOB 3: Deploy to Vercel (main branch only)
+  # ─────────────────────────────────────────
+  # JOB 3: Deploy to Netlify (main branch only)
   # ─────────────────────────────────────────
   deploy:
-    name: Deploy to Vercel
+    name: Deploy to Netlify
     runs-on: ubuntu-latest
     needs: [contracts, frontend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    defaults:
-      run:
-        working-directory: ./frontend
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          name: production-build
+          path: frontend/dist
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build for production
-        run: npm run build
-        env:
-          VITE_RPC_URL: ${{ secrets.VITE_RPC_URL }}
-          VITE_NETWORK_PASSPHRASE: ${{ secrets.VITE_NETWORK_PASSPHRASE }}
-          VITE_GRANT_REGISTRY_CONTRACT: ${{ secrets.VITE_GRANT_REGISTRY_CONTRACT }}
-          VITE_GRANT_APPLICATION_CONTRACT: ${{ secrets.VITE_GRANT_APPLICATION_CONTRACT }}
-          VITE_GRANT_ESCROW_CONTRACT: ${{ secrets.VITE_GRANT_ESCROW_CONTRACT }}
-          VITE_FREIGHTER_ENABLED: "true"
-
-      - name: Deploy to Vercel (Production)
+      - name: Deploy to Netlify (Production)
         run: |
-          vercel --prod --token ${{ secrets.VERCEL_TOKEN }} \
-            --yes \
-            --cwd ./dist
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          netlify deploy --prod --dir=frontend/dist --auth=${{ secrets.NETLIFY_AUTH_TOKEN }} --site=${{ secrets.NETLIFY_SITE_ID }}
