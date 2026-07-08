@@ -163,7 +163,7 @@ Applicant                   Funder                    Escrow Contract
 
 * **Frontend:** React 18, TypeScript 5.2, Vite 5.2, TailwindCSS 3.4
 * **State Management:** Zustand 4.5
-* **Blockchain Integration:** `@stellar/stellar-sdk` (v13), Freighter SDK, Albedo Intent
+* **Blockchain Integration:** `@stellar/stellar-sdk` (v16.0.1), Freighter SDK, Albedo Intent
 * **Smart Contracts:** Rust, `soroban-sdk` (v22.0.1)
 * **Testing Frame:** Vitest (frontend), Cargo Test utils (contracts)
 * **Deployment:** GitHub Actions CI/CD pipeline, Vercel host
