@@ -395,7 +395,36 @@ The GitHub Actions workflow manages all checks on push/pull requests:
 
 ---
 
-## 20. Contributing
+## 20. Frontend Deployment (Netlify)
+
+The frontend is fully configured for continuous deployment on **Netlify** using both git-push webhooks and the GitHub Actions CI/CD pipeline.
+
+### 20.1 Automated Continuous Deployment (Recommended)
+1. Log in to the [Netlify Dashboard](https://app.netlify.com/).
+2. Click **Add new site** ➔ **Import an existing project**.
+3. Select **GitHub** and authorize the **Netlify GitHub App** to access your repository `grantlink-niv`.
+4. Configure the build settings:
+   * **Base directory:** `frontend`
+   * **Build command:** `npm run build`
+   * **Publish directory:** `frontend/dist`
+5. Click **Deploy site**.
+6. Set the Environment Variables under **Site configuration** ➔ **Environment variables** (using the variables listed in Section 12).
+
+> [!NOTE]
+> Connecting your site via the official **Netlify GitHub App** will automatically register deployment environments in your GitHub repository, displaying the **Deployments** section in the right-side panel of your repository page.
+
+### 20.2 Deploying via GitHub Actions Pipeline
+If you prefer deploying via the automated workflow in `.github/workflows/ci.yml`:
+1. Generate a Netlify Auth Token: Account Settings ➔ Applications ➔ Personal Access Tokens.
+2. Retrieve your Netlify Site ID: Site Configuration ➔ General ➔ Site details ➔ API ID.
+3. Configure your GitHub Repository Secrets by navigating to **Settings** ➔ **Secrets and variables** ➔ **Actions** and adding:
+   * `NETLIFY_SITE_ID`
+   * `NETLIFY_AUTH_TOKEN`
+4. Pushing a commit to `main` will automatically build your frontend, run tests, deploy the build to production, and create a GitHub deployment status event.
+
+---
+
+## 21. Contributing
 
 We welcome contributions from the open-source community!
 1. Fork the repository and create your feature branch: `git checkout -b feature/my-new-feature`
@@ -405,13 +434,13 @@ We welcome contributions from the open-source community!
 
 ---
 
-## 21. License
+## 22. License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 22. Acknowledgements
+## 23. Acknowledgements
 
 * Stellar Development Foundation (SDF)
 * Soroban Smart Contract platform
