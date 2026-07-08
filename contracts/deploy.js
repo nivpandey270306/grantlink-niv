@@ -32,20 +32,31 @@ try {
   const registryAddress = execSync(deployRegistryCmd).toString().trim();
   console.log(`GrantRegistry deployed at address: ${registryAddress}\n`);
 
-  // 4. Deploy GrantApplication
-  console.log('Step 4: Deploying GrantApplication contract to Testnet...');
-  const deployApplicationCmd = `stellar contract deploy --wasm ${applicationWasm} --source ${SOURCE_ACCOUNT} --network ${NETWORK} -- --admin ${adminAddress} --registry_contract ${registryAddress}`;
-  const applicationAddress = execSync(deployApplicationCmd).toString().trim();
-  console.log(`GrantApplication deployed at address: ${applicationAddress}\n`);
-
-  // 5. Deploy GrantEscrow
-  console.log('Step 5: Deploying GrantEscrow contract to Testnet...');
-  const deployEscrowCmd = `stellar contract deploy --wasm ${escrowWasm} --source ${SOURCE_ACCOUNT} --network ${NETWORK} -- --admin ${adminAddress} --registry_contract ${registryAddress} --application_contract ${applicationAddress}`;
+  // 4. Deploy GrantEscrow FIRST (with admin as temporary application_contract placeholder)
+  //    This resolves the circular dependency:
+  //    GrantApplication needs escrow address at construction.
+  //    GrantEscrow needs application address at construction.
+  //    Pattern: deploy escrow with admin placeholder → deploy application with real escrow →
+  //             call escrow.set_application_contract(applicationAddress) as admin.
+  console.log('Step 4: Deploying GrantEscrow contract (phase 1 - with admin as app placeholder)...');
+  const deployEscrowCmd = `stellar contract deploy --wasm ${escrowWasm} --source ${SOURCE_ACCOUNT} --network ${NETWORK} -- --admin ${adminAddress} --registry_contract ${registryAddress} --application_contract ${adminAddress}`;
   const escrowAddress = execSync(deployEscrowCmd).toString().trim();
   console.log(`GrantEscrow deployed at address: ${escrowAddress}\n`);
 
-  // 6. Write environment configuration to frontend .env
-  console.log('Step 6: Linking deployed contract addresses to frontend...');
+  // 5. Deploy GrantApplication with real escrow address
+  console.log('Step 5: Deploying GrantApplication contract with registered escrow address...');
+  const deployApplicationCmd = `stellar contract deploy --wasm ${applicationWasm} --source ${SOURCE_ACCOUNT} --network ${NETWORK} -- --admin ${adminAddress} --registry_contract ${registryAddress} --escrow_contract ${escrowAddress}`;
+  const applicationAddress = execSync(deployApplicationCmd).toString().trim();
+  console.log(`GrantApplication deployed at address: ${applicationAddress}\n`);
+
+  // 6. Update GrantEscrow to point to the real GrantApplication contract
+  console.log('Step 6: Linking GrantEscrow to real GrantApplication contract...');
+  const updateEscrowCmd = `stellar contract invoke --id ${escrowAddress} --source ${SOURCE_ACCOUNT} --network ${NETWORK} -- set_application_contract --application_contract ${applicationAddress}`;
+  execSync(updateEscrowCmd, { stdio: 'inherit' });
+  console.log('GrantEscrow application_contract updated.\n');
+
+  // 7. Write environment configuration to frontend .env
+  console.log('Step 7: Linking deployed contract addresses to frontend...');
   const envContent = `VITE_RPC_URL="https://soroban-testnet.stellar.org"
 VITE_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 VITE_GRANT_REGISTRY_CONTRACT="${registryAddress}"
@@ -60,6 +71,9 @@ VITE_FREIGHTER_ENABLED="true"
   
   console.log('----------------------------------------------------');
   console.log('DEPLOYMENT COMPLETE');
+  console.log(`  Registry:    ${registryAddress}`);
+  console.log(`  Application: ${applicationAddress}`);
+  console.log(`  Escrow:      ${escrowAddress}`);
   console.log('----------------------------------------------------');
 
 } catch (error) {

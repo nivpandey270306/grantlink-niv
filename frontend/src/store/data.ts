@@ -28,6 +28,16 @@ export interface Application {
   createdAt: string;
 }
 
+export interface EscrowState {
+  grantId: number;
+  recipient: string;
+  milestoneAmounts: number[];
+  milestoneReleased: boolean[];
+  fundsDeposited: number;
+  token: string | null;
+  status: number; // 0 = Initialized, 1 = Funded, 2 = Refunded, 3 = Completed
+}
+
 export interface ActivityEvent {
   type: string;
   txHash: string;
@@ -79,14 +89,18 @@ interface DataState {
   analytics: any;
   selectedGrant: Grant | null;
   selectedGrantApps: Application[];
+  escrowState: EscrowState | null;
   toasts: ToastMessage[];
   loading: boolean;
   health: HealthStatus | null;
-  
+
   fetchGrants: () => Promise<void>;
   fetchApplications: () => Promise<void>;
   fetchGrantDetails: (id: number) => Promise<void>;
+  fetchEscrowState: (grantId: number) => Promise<EscrowState | null>;
   createGrant: (grantData: Partial<Grant>) => Promise<string>;
+  updateGrant: (id: number, grantData: Partial<Grant>) => Promise<string>;
+  cancelGrant: (id: number) => Promise<string>;
   submitApplication: (appData: Partial<Application>) => Promise<string>;
   approveApplication: (appId: number, grantId: number, milestoneAmounts: number[]) => Promise<string>;
   rejectApplication: (appId: number, grantId: number) => Promise<string>;
@@ -174,14 +188,12 @@ const executeContractTx = async (
     .setTimeout(60)
     .build();
 
-  // 3. Simulate transaction to get footprint and resource fee
-  const sim = await server.simulateTransaction(tx);
-  if (rpc.Api.isSimulationError(sim)) {
-    throw new Error(`Transaction simulation failed: ${sim.error}`);
+  // 3. Simulate and prepare transaction
+  try {
+    tx = await server.prepareTransaction(tx);
+  } catch (prepareErr: any) {
+    throw new Error(`Transaction simulation/preparation failed: ${prepareErr?.message || prepareErr}`);
   }
-
-  // 4. Assemble transaction with simulation results
-  tx = server.assembleTransaction(tx, sim);
 
   // 5. Sign transaction via connected wallet
   const xdrString = tx.toXDR();
@@ -229,6 +241,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   analytics: null,
   selectedGrant: null,
   selectedGrantApps: [],
+  escrowState: null,
   toasts: [],
   loading: false,
   health: null,
@@ -404,6 +417,71 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
+  updateGrant: async (id, grantData) => {
+    set({ loading: true });
+    const registryId = getEnvVar('VITE_GRANT_REGISTRY_CONTRACT');
+    try {
+      const args = [
+        nativeToScVal(id, { type: 'u32' }),
+        nativeToScVal(grantData.title || ''),
+        nativeToScVal(grantData.description || ''),
+        nativeToScVal(grantData.category || 'General'),
+      ];
+
+      const txHash = await executeContractTx(registryId, 'update_grant', args);
+
+      const newRecord: TransactionRecord = {
+        hash: txHash,
+        timestamp: new Date().toISOString(),
+        contractId: registryId,
+        method: 'update_grant',
+        status: 'SUCCESS',
+        explorerLink: `https://stellar.expert/explorer/testnet/tx/${txHash}`
+      };
+      get().addTransaction(newRecord);
+
+      get().addToast('Grant Updated', `Grant #${id} successfully updated on-chain.`, 'success');
+      await get().fetchGrants();
+      return txHash;
+    } catch (err: any) {
+      console.error(err);
+      get().addToast('Update Grant Failed', err.message || 'Transaction failed', 'error');
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  cancelGrant: async (id) => {
+    set({ loading: true });
+    const registryId = getEnvVar('VITE_GRANT_REGISTRY_CONTRACT');
+    try {
+      const args = [nativeToScVal(id, { type: 'u32' })];
+
+      const txHash = await executeContractTx(registryId, 'cancel_grant', args);
+
+      const newRecord: TransactionRecord = {
+        hash: txHash,
+        timestamp: new Date().toISOString(),
+        contractId: registryId,
+        method: 'cancel_grant',
+        status: 'SUCCESS',
+        explorerLink: `https://stellar.expert/explorer/testnet/tx/${txHash}`
+      };
+      get().addTransaction(newRecord);
+
+      get().addToast('Grant Cancelled', `Grant #${id} has been cancelled on-chain.`, 'info');
+      await get().fetchGrants();
+      return txHash;
+    } catch (err: any) {
+      console.error(err);
+      get().addToast('Cancel Grant Failed', err.message || 'Transaction failed', 'error');
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   submitApplication: async (appData) => {
     set({ loading: true });
     const contractId = getEnvVar('VITE_GRANT_APPLICATION_CONTRACT');
@@ -446,12 +524,11 @@ export const useDataStore = create<DataState>((set, get) => ({
   approveApplication: async (appId, grantId, milestoneAmounts) => {
     set({ loading: true });
     const contractId = getEnvVar('VITE_GRANT_APPLICATION_CONTRACT');
-    const escrowId = getEnvVar('VITE_GRANT_ESCROW_CONTRACT');
     try {
       const formattedMilestones = milestoneAmounts.map(a => nativeToScVal(BigInt(a), { type: 'i128' }));
+      // Note: escrow address is now read from contract storage — no address parameter needed
       const args = [
         nativeToScVal(appId, { type: 'u32' }),
-        nativeToScVal(escrowId, { type: 'address' }),
         nativeToScVal(formattedMilestones),
       ];
 
@@ -614,6 +691,46 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
+  fetchEscrowState: async (grantId: number): Promise<EscrowState | null> => {
+    try {
+      const rpcUrl = getEnvVar('VITE_RPC_URL');
+      const escrowId = getEnvVar('VITE_GRANT_ESCROW_CONTRACT');
+      const networkPassphrase = getEnvVar('VITE_NETWORK_PASSPHRASE');
+
+      if (!rpcUrl || !escrowId || !escrowId.startsWith('C')) return null;
+
+      const server = new rpc.Server(rpcUrl) as any;
+      const contract = new Contract(escrowId);
+      const op = contract.call('get_escrow', nativeToScVal(grantId, { type: 'u32' }));
+      const tx = new TransactionBuilder(
+        new Account('GCSGO4WCCJA5CHIUK4HS2WEGZIXCHL7DAGXP77L3PUHSMGGMAX7TQOL4', '0'),
+        { fee: '100', networkPassphrase }
+      ).addOperation(op).setTimeout(0).build();
+
+      const sim = await server.simulateTransaction(tx) as any;
+      if (!sim.result || rpc.Api.isSimulationError(sim)) return null;
+
+      const raw = scValToNative(sim.result.retval) as any;
+      if (!raw) return null;
+
+      const escrow: EscrowState = {
+        grantId: Number(raw.grant_id),
+        recipient: raw.recipient,
+        milestoneAmounts: (raw.milestone_amounts || []).map((a: any) => Number(a)),
+        milestoneReleased: raw.milestone_released || [],
+        fundsDeposited: Number(raw.funds_deposited || 0),
+        token: raw.token || null,
+        status: Number(raw.status || 0),
+      };
+
+      set({ escrowState: escrow });
+      return escrow;
+    } catch (err) {
+      console.warn('fetchEscrowState failed:', err);
+      return null;
+    }
+  },
+
   fetchEvents: async () => {
     try {
       const rpcUrl = getEnvVar('VITE_RPC_URL');
@@ -627,15 +744,21 @@ export const useDataStore = create<DataState>((set, get) => ({
         if (appId && appId.startsWith('C')) ids.push(appId);
         if (escrowId && escrowId.startsWith('C')) ids.push(escrowId);
 
+        // BLOCKER 1 FIX: startLedger:0 is rejected by Soroban RPC.
+        // Fetch latest ledger, then look back ~24h (17280 ledgers at ~5s each).
+        const ledgerInfo = await server.getLatestLedger() as any;
+        const latestLedger: number = ledgerInfo.sequence || 1;
+        const startLedger = Math.max(1, latestLedger - 17280);
+
         const res = await server.getEvents({
-          startLedger: 0,
+          startLedger,
           filters: [
             {
               type: 'contract',
               contractIds: ids
             }
           ],
-          limit: 30
+          limit: 50
         });
 
         if (res.events && res.events.length > 0) {

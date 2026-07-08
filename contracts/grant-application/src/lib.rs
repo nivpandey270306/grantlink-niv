@@ -47,6 +47,7 @@ pub struct Application {
 pub enum DataKey {
     Admin,
     RegistryContract,
+    EscrowContract,
     NextAppId,
     Application(u32),
 }
@@ -56,10 +57,16 @@ pub struct GrantApplicationContract;
 
 #[contractimpl]
 impl GrantApplicationContract {
-    pub fn __constructor(env: Env, admin: Address, registry_contract: Address) {
+    pub fn __constructor(env: Env, admin: Address, registry_contract: Address, escrow_contract: Address) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::RegistryContract, &registry_contract);
+        env.storage().instance().set(&DataKey::EscrowContract, &escrow_contract);
         env.storage().instance().set(&DataKey::NextAppId, &1u32);
+    }
+
+    /// Returns the registered escrow contract address.
+    pub fn get_escrow_contract(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::EscrowContract)
     }
 
     pub fn submit_application(
@@ -114,7 +121,6 @@ impl GrantApplicationContract {
     pub fn approve_application(
         env: Env,
         app_id: u32,
-        escrow_contract: Address,
         milestone_amounts: Vec<i128>,
     ) -> Result<(), Error> {
         let mut app: Application = env
@@ -138,11 +144,19 @@ impl GrantApplicationContract {
         let grant = registry_client.get_grant(&app.grant_id).ok_or(Error::GrantNotFound)?;
         grant.owner.require_auth();
 
+        // Resolve escrow contract from trusted storage — NOT from caller input
+        let escrow_contract: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::EscrowContract)
+            .ok_or(Error::Unauthorized)?;
+
         // Mark application as approved
         app.status = 1; // Approved
         env.storage().persistent().set(&DataKey::Application(app_id), &app);
+        env.storage().persistent().extend_ttl(&DataKey::Application(app_id), 17280, 518400);
 
-        // Cross-Contract Call: Trigger Escrow Contract Initialization
+        // Cross-Contract Call: Trigger Escrow Contract Initialization (trusted address from storage)
         use soroban_sdk::IntoVal;
         let mut args = soroban_sdk::Vec::new(&env);
         args.push_back(app.grant_id.into_val(&env));
@@ -226,15 +240,19 @@ mod test {
         let applicant = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
+        let registry_client = grant_registry::GrantRegistryContractClient::new(&env, &registry_id);
 
         let title = String::from_str(&env, "Agri Fund");
         let desc = String::from_str(&env, "Agri Desc");
         let cat = String::from_str(&env, "Agriculture");
         let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
 
-        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
+        // Register escrow first (needed by constructor)
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone(), escrow_id.clone()));
         let app_client = GrantApplicationContractClient::new(&env, &app_id);
+        let escrow_client = grant_escrow::GrantEscrowContractClient::new(&env, &escrow_id);
+        escrow_client.set_application_contract(&app_id);
 
         let app_name = String::from_str(&env, "Farmer Joe");
         let proj_title = String::from_str(&env, "Solar Irrigation");
@@ -244,6 +262,10 @@ mod test {
 
         let app_state = app_client.get_application(&1).unwrap();
         assert_eq!(app_state.status, 0);
+
+        // Verify stored escrow address matches
+        let stored_escrow = app_client.get_escrow_contract();
+        assert_eq!(stored_escrow, Some(escrow_id));
     }
 
     #[test]
@@ -256,16 +278,19 @@ mod test {
         let applicant = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
+        let registry_client = grant_registry::GrantRegistryContractClient::new(&env, &registry_id);
 
         let title = String::from_str(&env, "Agri Fund");
         let desc = String::from_str(&env, "Agri Desc");
         let cat = String::from_str(&env, "Agriculture");
         let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
 
-        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        // GrantApplicationContract now takes escrow address in constructor — no runtime injection possible
+        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone(), escrow_id.clone()));
         let app_client = GrantApplicationContractClient::new(&env, &app_id);
-        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), app_id.clone()));
+        let escrow_client = grant_escrow::GrantEscrowContractClient::new(&env, &escrow_id);
+        escrow_client.set_application_contract(&app_id);
 
         let app_name = String::from_str(&env, "Farmer Joe");
         let proj_title = String::from_str(&env, "Solar Irrigation");
@@ -273,7 +298,8 @@ mod test {
         app_client.submit_application(&applicant, &grant_id, &app_name, &proj_title, &prop, &10000i128);
 
         let milestone_amounts: Vec<i128> = Vec::from_array(&env, [3000i128, 4000i128, 3000i128]);
-        app_client.approve_application(&1, &escrow_id, &milestone_amounts);
+        // escrow address comes from storage now, no address parameter
+        app_client.approve_application(&1, &milestone_amounts);
 
         let approved_app = app_client.get_application(&1).unwrap();
         assert_eq!(approved_app.status, 1);
@@ -289,15 +315,18 @@ mod test {
         let applicant = Address::generate(&env);
 
         let registry_id = env.register(GrantRegistryContract, (admin.clone(),));
-        let registry_client = GrantRegistryContractClient::new(&env, &registry_id);
+        let registry_client = grant_registry::GrantRegistryContractClient::new(&env, &registry_id);
 
         let title = String::from_str(&env, "Agri Fund");
         let desc = String::from_str(&env, "Agri Desc");
         let cat = String::from_str(&env, "Agriculture");
         let grant_id = registry_client.create_grant(&owner, &title, &desc, &cat, &10000i128, &1000u64, &3u32);
 
-        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone()));
+        let escrow_id = env.register(GrantEscrowContract, (admin.clone(), registry_id.clone(), admin.clone()));
+        let app_id = env.register(GrantApplicationContract, (admin.clone(), registry_id.clone(), escrow_id.clone()));
         let app_client = GrantApplicationContractClient::new(&env, &app_id);
+        let escrow_client = grant_escrow::GrantEscrowContractClient::new(&env, &escrow_id);
+        escrow_client.set_application_contract(&app_id);
 
         let app_name = String::from_str(&env, "Farmer Joe");
         let proj_title = String::from_str(&env, "Solar Irrigation");

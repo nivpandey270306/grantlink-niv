@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWalletStore } from '../store/wallet';
 
 interface SidebarProps {
@@ -10,6 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, setActiveTab, onOpenConnect, onOpenSendXlm }: SidebarProps) {
   const { connected, address, balance, walletType, network, disconnect, fundAccount, loading } = useWalletStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
@@ -21,16 +22,31 @@ export function Sidebar({ activeTab, setActiveTab, onOpenConnect, onOpenSendXlm 
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
 
-  return (
-    <aside className="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col p-6 z-40">
+  const handleNavClick = (id: string) => {
+    setActiveTab(id);
+    setMobileOpen(false);
+  };
+
+  const sidebarContent = (
+    <aside className="h-full flex flex-col p-5 overflow-y-auto">
       {/* Brand logo */}
-      <div className="flex flex-col mb-8">
-        <h1 className="font-allura text-4xl text-primary font-bold">GrantLink</h1>
+      <div className="flex flex-col mb-7">
+        <div className="flex items-center justify-between">
+          <h1 className="font-allura text-4xl text-primary font-bold">GrantLink</h1>
+          {/* Mobile close button */}
+          <button
+            className="md:hidden text-on-surface-variant hover:text-on-surface p-1 rounded"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          >
+            <span className="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
         <span className="text-[10px] text-on-surface-variant font-semibold tracking-widest uppercase mt-1">On-Chain Funding</span>
       </div>
 
       {/* Wallet Status Area */}
-      <div className="mb-6 p-4 rounded-lg bg-surface border border-outline-variant flex flex-col gap-2">
+      <div className="mb-5 p-4 rounded-lg bg-surface border border-outline-variant flex flex-col gap-2">
         {connected && address ? (
           <>
             <div className="flex items-center justify-between text-xs">
@@ -85,12 +101,12 @@ export function Sidebar({ activeTab, setActiveTab, onOpenConnect, onOpenSendXlm 
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 flex flex-col gap-1.5">
+      <nav className="flex-1 flex flex-col gap-1">
         <p className="text-[10px] text-outline uppercase font-semibold tracking-wider mb-2 ml-2">Main Menu</p>
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => handleNavClick(item.id)}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
               activeTab === item.id
                 ? 'bg-primary text-surface font-semibold shadow-sm'
@@ -116,5 +132,42 @@ export function Sidebar({ activeTab, setActiveTab, onOpenConnect, onOpenSendXlm 
         </div>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Mobile Hamburger Trigger — visible only on small screens */}
+      <button
+        id="mobile-nav-toggle"
+        className="md:hidden fixed top-4 left-4 z-50 bg-surface-container-lowest border border-outline-variant rounded-lg p-2 shadow-sm text-on-surface hover:bg-surface-container transition-colors"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label="Toggle navigation"
+      >
+        <span className="material-symbols-outlined text-xl">{mobileOpen ? 'close' : 'menu'}</span>
+      </button>
+
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-40 z-40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Drawer — slides in from left */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-screen w-72 max-w-[85vw] bg-surface-container-lowest border-r border-outline-variant z-50 transform transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarContent}
+      </div>
+
+      {/* Desktop Sidebar — always visible on md+ */}
+      <div className="hidden md:flex fixed top-0 left-0 h-screen w-64 bg-surface-container-lowest border-r border-outline-variant flex-col z-40">
+        {sidebarContent}
+      </div>
+    </>
   );
 }

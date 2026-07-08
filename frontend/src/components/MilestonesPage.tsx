@@ -3,24 +3,58 @@ import { useDataStore, Grant, Application, NATIVE_TOKEN_ADDRESS } from '../store
 import { useWalletStore } from '../store/wallet';
 
 export function MilestonesPage() {
-  const { grants, selectedGrant, selectedGrantApps, events, depositFunds, releaseMilestone, refundGrant, addToast } = useDataStore();
+  const { grants, selectedGrant, selectedGrantApps, events, fetchEscrowState, depositFunds, releaseMilestone, refundGrant, addToast } = useDataStore();
   const { connected, address } = useWalletStore();
 
-  const [escrowState, setEscrowState] = useState<any | null>(null);
+  const [localEscrow, setLocalEscrow] = useState<any | null>(null);
   const [proofInputs, setProofInputs] = useState<{[key: number]: string}>({});
   const [proofsUploaded, setProofsUploaded] = useState<{[key: number]: { text: string; time: string }}>({});
   const [loadingAction, setLoadingAction] = useState(false);
+  const [fetchingEscrow, setFetchingEscrow] = useState(false);
 
-  // Sync simulated escrow state for selected grant
+  // BLOCKER 6 FIX: Fetch escrow state from contract (source of truth), with event fallback
   useEffect(() => {
-    if (selectedGrant) {
-      // Find if we have deposit/released events for this grant to rebuild state
+    if (!selectedGrant) {
+      setLocalEscrow(null);
+      return;
+    }
+
+    const loadEscrowState = async () => {
+      setFetchingEscrow(true);
+      try {
+        // Primary: fetch directly from GrantEscrow contract via simulation
+        const contractState = await fetchEscrowState(selectedGrant.onChainId);
+
+        if (contractState) {
+          // Map contract state to display model
+          setLocalEscrow({
+            grantId: contractState.grantId,
+            recipient: contractState.recipient,
+            recipientName: selectedGrantApps.find(a => a.applicant === contractState.recipient)?.name ?? null,
+            milestoneAmounts: contractState.milestoneAmounts,
+            milestoneReleased: contractState.milestoneReleased,
+            fundsDeposited: contractState.fundsDeposited,
+            token: contractState.token,
+            status: contractState.status, // 0=Init, 1=Funded, 2=Refunded, 3=Completed
+          });
+        } else {
+          // Fallback: reconstruct from events if contract returns null (no escrow initialized yet)
+          buildFromEvents();
+        }
+      } catch (err) {
+        console.warn('fetchEscrowState failed, falling back to event reconstruction:', err);
+        buildFromEvents();
+      } finally {
+        setFetchingEscrow(false);
+      }
+    };
+
+    const buildFromEvents = () => {
       const isDeposited = events.some(e => e.grantId === selectedGrant.onChainId && e.type === 'FundsDeposited');
       const releasedMilestones = events
         .filter(e => e.grantId === selectedGrant.onChainId && e.type === 'MilestoneReleased')
         .map(e => e.details?.milestoneIdx ?? -1);
 
-      // Create milestone array
       const milestoneCount = selectedGrant.milestoneCount;
       const amount = selectedGrant.amount;
       const milestone_amounts = [];
@@ -41,28 +75,29 @@ export function MilestonesPage() {
         remaining -= portion;
       }
 
-      // Check if all released
       const allCompleted = milestone_released.every(r => r === true);
-
-      // Find recipient
       const approvedApp = selectedGrantApps.find(a => a.status === 1);
 
-      setEscrowState({
+      setLocalEscrow({
         grantId: selectedGrant.onChainId,
         recipient: approvedApp ? approvedApp.applicant : 'No recipient approved yet',
         recipientName: approvedApp ? approvedApp.name : null,
         milestoneAmounts: milestone_amounts,
         milestoneReleased: milestone_released,
         fundsDeposited: isDeposited ? amount : 0,
-        status: allCompleted ? 3 : isDeposited ? 1 : approvedApp ? 0 : -1, // -1: Need recipient, 0: Init (Ready to fund), 1: Funded, 3: Completed
+        token: null,
+        status: allCompleted ? 3 : isDeposited ? 1 : approvedApp ? 0 : -1,
       });
-    } else {
-      setEscrowState(null);
-    }
+    };
+
+    loadEscrowState();
   }, [selectedGrant, selectedGrantApps, events]);
 
+  // Use contract-sourced state as escrowState
+  const escrowDisplay = localEscrow;
+
   const handleDeposit = async () => {
-    if (!selectedGrant || !escrowState) return;
+    if (!selectedGrant || !escrowDisplay) return;
     if (!connected || !address) {
       addToast('Wallet not connected', 'Connect wallet to lock funds.', 'error');
       return;
@@ -96,7 +131,7 @@ export function MilestonesPage() {
   };
 
   const handleRelease = async (idx: number, amt: number) => {
-    if (!selectedGrant || !escrowState) return;
+    if (!selectedGrant || !escrowDisplay) return;
     if (!connected || !address) {
       addToast('Wallet not connected', 'Connect wallet to release milestone funds.', 'error');
       return;
@@ -115,7 +150,7 @@ export function MilestonesPage() {
   };
 
   const handleRefund = async () => {
-    if (!selectedGrant || !escrowState) return;
+    if (!selectedGrant || !escrowDisplay) return;
     if (!connected || !address) {
       addToast('Wallet not connected', 'Connect wallet to execute refunds.', 'error');
       return;
@@ -133,21 +168,32 @@ export function MilestonesPage() {
     }
   };
 
-  if (!selectedGrant || !escrowState) {
+  if (!selectedGrant || (!escrowDisplay && !fetchingEscrow)) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface-container-lowest border border-outline border-dashed rounded-lg text-center min-h-[400px]">
         <span className="material-symbols-outlined text-outline text-5xl mb-4">account_tree</span>
         <h3 className="text-xl font-bold font-soria text-forest mb-2">Select a Grant to Track Milestones</h3>
         <p className="text-xs text-on-surface-variant font-inter max-w-sm leading-relaxed">
-          Tracking escrow deposits and milestones releases requires an active grant focus. Navigate to the 'Grants' tab and click 'Manage & Track'.
+          Tracking escrow deposits and milestone releases requires an active grant focus. Navigate to the 'Grants' tab and click 'Manage & Track'.
         </p>
       </div>
     );
   }
 
+  if (fetchingEscrow) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 min-h-[400px] gap-4">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-on-surface-variant font-semibold">Fetching escrow state from GrantEscrow contract...</p>
+      </div>
+    );
+  }
+
+  if (!escrowDisplay) return null;
+
   // Count milestones info
-  const totalMilestones = escrowState.milestoneAmounts.length;
-  const completedCount = escrowState.milestoneReleased.filter((r: boolean) => r).length;
+  const totalMilestones = escrowDisplay.milestoneAmounts.length;
+  const completedCount = escrowDisplay.milestoneReleased.filter((r: boolean) => r).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -180,23 +226,23 @@ export function MilestonesPage() {
             <div className="flex flex-col gap-1 text-xs">
               <span className="text-on-surface-variant font-semibold">Recipient:</span>
               <span className="font-mono bg-surface p-1.5 rounded truncate text-primary font-bold">
-                {escrowState.recipient}
+                {escrowDisplay.recipient}
               </span>
-              {escrowState.recipientName && (
-                <span className="text-[10px] font-bold text-on-surface mt-1">Org: {escrowState.recipientName}</span>
+              {escrowDisplay.recipientName && (
+                <span className="text-[10px] font-bold text-on-surface mt-1">Org: {escrowDisplay.recipientName}</span>
               )}
             </div>
 
             <div className="flex justify-between items-center text-xs">
               <span className="text-on-surface-variant font-semibold">Locked Funds:</span>
-              <strong className="font-mono text-forest font-bold">{escrowState.fundsDeposited.toLocaleString()} XLM</strong>
+              <strong className="font-mono text-forest font-bold">{escrowDisplay.fundsDeposited.toLocaleString()} XLM</strong>
             </div>
 
             <div className="flex justify-between items-center text-xs">
               <span className="text-on-surface-variant font-semibold">Disbursed Funds:</span>
               <strong className="font-mono text-forest font-bold">
-                {escrowState.milestoneAmounts
-                  .filter((_: any, i: number) => escrowState.milestoneReleased[i])
+                {escrowDisplay.milestoneAmounts
+                  .filter((_: any, i: number) => escrowDisplay.milestoneReleased[i])
                   .reduce((sum: number, amt: number) => sum + amt, 0)
                   .toLocaleString()} XLM
               </strong>
@@ -205,21 +251,21 @@ export function MilestonesPage() {
             <div className="flex justify-between items-center text-xs">
               <span className="text-on-surface-variant font-semibold">Contract Status:</span>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                escrowState.status === 3
+                escrowDisplay.status === 3
                   ? 'bg-primary text-surface'
-                  : escrowState.status === 1
+                  : escrowDisplay.status === 1
                   ? 'bg-primary bg-opacity-20 text-primary border border-primary border-opacity-35'
-                  : escrowState.status === 0
+                  : escrowDisplay.status === 0
                   ? 'bg-gold bg-opacity-20 text-gold border border-gold border-opacity-35'
                   : 'bg-copper bg-opacity-20 text-copper border border-copper border-opacity-35'
               }`}>
-                {escrowState.status === 3 ? 'Completed' : escrowState.status === 1 ? 'Funded' : escrowState.status === 0 ? 'Awaiting Deposit' : 'Awaiting Recipient'}
+                {escrowDisplay.status === 3 ? 'Completed' : escrowDisplay.status === 1 ? 'Funded' : escrowDisplay.status === 0 ? 'Awaiting Deposit' : 'Awaiting Recipient'}
               </span>
             </div>
 
             {/* Action buttons */}
             <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-outline-variant">
-              {escrowState.status === 0 && (
+              {escrowDisplay.status === 0 && (
                 <button
                   onClick={handleDeposit}
                   disabled={loadingAction}
@@ -229,7 +275,7 @@ export function MilestonesPage() {
                   Lock {selectedGrant.amount.toLocaleString()} XLM in Escrow
                 </button>
               )}
-              {escrowState.status === 1 && (
+              {escrowDisplay.status === 1 && (
                 <button
                   onClick={handleRefund}
                   disabled={loadingAction}
@@ -254,8 +300,8 @@ export function MilestonesPage() {
             </div>
 
             <div className="relative pl-6 border-l-2 border-primary border-opacity-30 space-y-6">
-              {escrowState.milestoneAmounts.map((amt: number, idx: number) => {
-                const released = escrowState.milestoneReleased[idx];
+              {escrowDisplay.milestoneAmounts.map((amt: number, idx: number) => {
+                const released = escrowDisplay.milestoneReleased[idx];
                 const uploaded = proofsUploaded[idx];
                 
                 return (
@@ -316,7 +362,7 @@ export function MilestonesPage() {
                           </div>
 
                           {/* Funder release trigger */}
-                          {escrowState.status === 1 && (
+                          {escrowDisplay.status === 1 && (
                             <button
                               onClick={() => handleRelease(idx, amt)}
                               disabled={loadingAction}

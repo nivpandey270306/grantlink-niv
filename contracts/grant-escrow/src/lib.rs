@@ -64,6 +64,18 @@ impl GrantEscrowContract {
         env.storage().instance().set(&DataKey::ApplicationContract, &application_contract);
     }
 
+    /// Admin-only: update the trusted application contract address.
+    /// Used during deployment to resolve circular contract dependency.
+    pub fn set_application_contract(env: Env, application_contract: Address) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Admin not set");
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::ApplicationContract, &application_contract);
+    }
+
     pub fn initialize_escrow(
         env: Env,
         grant_id: u32,

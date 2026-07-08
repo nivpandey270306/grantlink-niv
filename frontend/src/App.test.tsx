@@ -33,10 +33,11 @@ vi.mock('@stellar/freighter-api', () => ({
 // Mock albedo
 vi.mock('@albedo-link/intent', () => ({
   default: {
-    publicKeys: vi.fn().mockResolvedValue({ pubkey: 'GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER' }),
+    publicKey: vi.fn().mockResolvedValue({ pubkey: 'GBX9L2F4AAM24QED4YMSQZLYDOTH6WEYJ2A6ZEPYP7M2GZ4Y6L2OWNER' }),
     tx: vi.fn().mockResolvedValue({ signed_envelope_xdr: 'mock_signed_xdr' })
   }
 }));
+
 
 // Mock stellar-sdk
 vi.mock('@stellar/stellar-sdk', () => {
@@ -53,6 +54,7 @@ vi.mock('@stellar/stellar-sdk', () => {
       }
     }),
     assembleTransaction: vi.fn().mockImplementation((tx) => tx),
+    prepareTransaction: vi.fn().mockImplementation((tx) => Promise.resolve(tx)),
     sendTransaction: vi.fn().mockResolvedValue({
       status: 'SUCCESS',
       hash: 'mock_tx_hash_123'
@@ -62,6 +64,9 @@ vi.mock('@stellar/stellar-sdk', () => {
     }),
     getEvents: vi.fn().mockResolvedValue({
       events: []
+    }),
+    getLatestLedger: vi.fn().mockResolvedValue({
+      sequence: 100000
     })
   }));
 

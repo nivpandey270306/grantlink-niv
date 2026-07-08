@@ -7,7 +7,7 @@ interface GrantsPageProps {
 }
 
 export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
-  const { grants, createGrant, addEvent, addToast, loading } = useDataStore();
+  const { grants, createGrant, updateGrant, cancelGrant, addToast, loading } = useDataStore();
   const { connected, address } = useWalletStore();
   
   const [showForm, setShowForm] = useState(false);
@@ -20,6 +20,19 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
 
   const [txState, setTxState] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [txHash, setTxHash] = useState('');
+
+  // Edit Grant Modal state
+  const [editingGrant, setEditingGrant] = useState<Grant | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState('Technology');
+  const [editTxState, setEditTxState] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  const [editTxHash, setEditTxHash] = useState('');
+
+  // Cancel Grant Confirmation state
+  const [cancelTargetGrant, setCancelTargetGrant] = useState<Grant | null>(null);
+  const [cancelTxState, setCancelTxState] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  const [cancelTxHash, setCancelTxHash] = useState('');
 
   const templates = [
     {
@@ -137,6 +150,66 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
       setTxState('failed');
       addToast('Transaction Failed', err.message, 'error');
       setTimeout(() => setTxState('idle'), 4000);
+    }
+  };
+
+  const openEditModal = (grant: Grant) => {
+    setEditingGrant(grant);
+    setEditTitle(grant.title);
+    setEditDescription(grant.description);
+    setEditCategory(grant.category);
+    setEditTxState('idle');
+    setEditTxHash('');
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGrant) return;
+    if (!connected || !address) {
+      addToast('Wallet not connected', 'Connect wallet to update grant.', 'error');
+      return;
+    }
+
+    setEditTxState('pending');
+    try {
+      const hash = await updateGrant(editingGrant.onChainId, {
+        title: editTitle,
+        description: editDescription,
+        category: editCategory,
+      });
+      setEditTxHash(hash);
+      setEditTxState('success');
+      setTimeout(() => {
+        setEditingGrant(null);
+        setEditTxState('idle');
+      }, 3000);
+    } catch (err: any) {
+      setEditTxState('failed');
+      addToast('Update Failed', err.message, 'error');
+      setTimeout(() => setEditTxState('idle'), 4000);
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelTargetGrant) return;
+    if (!connected || !address) {
+      addToast('Wallet not connected', 'Connect wallet to cancel grant.', 'error');
+      return;
+    }
+
+    setCancelTxState('pending');
+    try {
+      const hash = await cancelGrant(cancelTargetGrant.onChainId);
+      setCancelTxHash(hash);
+      setCancelTxState('success');
+      setTimeout(() => {
+        setCancelTargetGrant(null);
+        setCancelTxState('idle');
+      }, 3000);
+    } catch (err: any) {
+      setCancelTxState('failed');
+      addToast('Cancel Failed', err.message, 'error');
+      setTimeout(() => setCancelTxState('idle'), 4000);
     }
   };
 
@@ -415,12 +488,34 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <button
-                      onClick={() => onSelectGrant(grant)}
-                      className="px-3 py-1.5 border border-primary text-primary font-semibold rounded hover:bg-primary hover:text-surface transition-all"
-                    >
-                      Manage & Track
-                    </button>
+                    <div className="flex items-center justify-end gap-2 flex-wrap">
+                      <button
+                        onClick={() => onSelectGrant(grant)}
+                        className="px-3 py-1.5 border border-primary text-primary font-semibold rounded hover:bg-primary hover:text-surface transition-all text-xs"
+                      >
+                        Manage &amp; Track
+                      </button>
+                      {grant.status === 0 && (
+                        <>
+                          <button
+                            onClick={() => openEditModal(grant)}
+                            title="Edit grant title/description on-chain"
+                            className="px-2.5 py-1.5 border border-outline text-on-surface-variant font-semibold rounded hover:bg-surface-container hover:text-forest transition-all text-xs flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-xs">edit</span>
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => { setCancelTargetGrant(grant); setCancelTxState('idle'); }}
+                            title="Cancel this grant on-chain"
+                            className="px-2.5 py-1.5 border border-copper text-copper font-semibold rounded hover:bg-copper hover:text-surface transition-all text-xs flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-xs">cancel</span>
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -428,6 +523,146 @@ export function GrantsPage({ onSelectGrant }: GrantsPageProps) {
           </tbody>
         </table>
       </div>
+
+      {/* ── Edit Grant Modal ── */}
+      {editingGrant && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 max-w-lg w-full shadow-xl flex flex-col gap-5">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-soria text-forest">Edit Grant</h3>
+                <p className="text-xs text-on-surface-variant mt-0.5">Grant #{editingGrant.onChainId} — invokes <code className="text-primary">update_grant()</code></p>
+              </div>
+              <button onClick={() => setEditingGrant(null)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {editTxState === 'idle' && (
+              <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-on-surface">Grant Title *</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    className="bg-surface border border-outline-variant rounded px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-on-surface">Description</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={e => setEditDescription(e.target.value)}
+                    rows={3}
+                    className="bg-surface border border-outline-variant rounded px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-on-surface">Category</label>
+                  <select
+                    value={editCategory}
+                    onChange={e => setEditCategory(e.target.value)}
+                    className="bg-surface border border-outline-variant rounded px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option>Technology</option><option>Agriculture</option>
+                    <option>Education</option><option>Healthcare</option><option>Energy</option>
+                  </select>
+                </div>
+                <div className="flex gap-3 justify-end pt-2 border-t border-outline-variant">
+                  <button type="button" onClick={() => setEditingGrant(null)} className="border border-outline text-on-surface-variant font-semibold px-4 py-2 rounded text-sm hover:bg-surface">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={loading} className="bg-primary text-surface font-semibold px-5 py-2 rounded text-sm hover:bg-forest flex items-center gap-2 disabled:opacity-50">
+                    <span className="material-symbols-outlined text-sm">save</span>
+                    Save to Soroban
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {editTxState === 'pending' && (
+              <div className="flex flex-col items-center gap-4 py-6">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold text-on-surface-variant">Submitting update_grant() to Soroban...</p>
+              </div>
+            )}
+            {editTxState === 'success' && (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <span className="material-symbols-outlined text-primary text-5xl">check_circle</span>
+                <p className="font-bold text-forest font-soria">Grant Updated On-Chain</p>
+                <div className="font-mono text-[9px] bg-surface p-2 rounded border break-all">{editTxHash}</div>
+                <a href={`https://stellar.expert/explorer/testnet/tx/${editTxHash}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold">
+                  View on Stellar Expert <span className="material-symbols-outlined text-xs">open_in_new</span>
+                </a>
+              </div>
+            )}
+            {editTxState === 'failed' && (
+              <div className="flex flex-col items-center gap-2 py-4 text-center text-copper">
+                <span className="material-symbols-outlined text-4xl">error</span>
+                <p className="font-bold">Update transaction failed</p>
+                <button onClick={() => setEditTxState('idle')} className="text-xs border border-outline px-3 py-1 rounded mt-1">Try Again</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancel Grant Confirmation Modal ── */}
+      {cancelTargetGrant && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 max-w-sm w-full shadow-xl flex flex-col gap-5">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <span className="material-symbols-outlined text-copper text-5xl">warning</span>
+              <h3 className="text-xl font-bold font-soria text-forest">Cancel Grant #{cancelTargetGrant.onChainId}?</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                This will invoke <code className="text-primary">cancel_grant()</code> on-chain. The grant status will permanently change to <strong>Cancelled</strong>. This action cannot be undone.
+              </p>
+              <div className="bg-surface border border-outline-variant rounded p-3 text-xs w-full text-left">
+                <div className="font-bold text-forest truncate">{cancelTargetGrant.title}</div>
+                <div className="text-on-surface-variant mt-0.5">Funding: {cancelTargetGrant.amount.toLocaleString()} XLM</div>
+              </div>
+            </div>
+
+            {cancelTxState === 'idle' && (
+              <div className="flex gap-3">
+                <button onClick={() => setCancelTargetGrant(null)} className="flex-1 border border-outline text-on-surface-variant font-semibold py-2 rounded text-sm hover:bg-surface">
+                  Go Back
+                </button>
+                <button onClick={handleCancelConfirm} disabled={loading} className="flex-1 bg-copper text-surface font-semibold py-2 rounded text-sm hover:bg-opacity-90 flex items-center justify-center gap-2 disabled:opacity-50">
+                  <span className="material-symbols-outlined text-sm">cancel</span>
+                  Cancel Grant
+                </button>
+              </div>
+            )}
+            {cancelTxState === 'pending' && (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="w-10 h-10 border-4 border-copper border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-on-surface-variant font-semibold">Invoking cancel_grant()...</p>
+              </div>
+            )}
+            {cancelTxState === 'success' && (
+              <div className="flex flex-col items-center gap-3 py-2 text-center">
+                <span className="material-symbols-outlined text-primary text-4xl">check_circle</span>
+                <p className="font-bold text-forest font-soria text-sm">Grant Cancelled On-Chain</p>
+                <a href={`https://stellar.expert/explorer/testnet/tx/${cancelTxHash}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1">
+                  View Transaction <span className="material-symbols-outlined text-xs">open_in_new</span>
+                </a>
+              </div>
+            )}
+            {cancelTxState === 'failed' && (
+              <div className="flex flex-col items-center gap-2 text-copper text-center py-2">
+                <span className="material-symbols-outlined text-3xl">error</span>
+                <p className="text-xs font-bold">Cancellation failed</p>
+                <button onClick={() => setCancelTxState('idle')} className="text-xs border border-copper px-3 py-1 rounded mt-1">Retry</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

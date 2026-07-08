@@ -78,7 +78,7 @@ export default function App() {
           />
 
           {/* Main Dashboard Panel Canvas */}
-          <main className="ml-64 flex-1 p-12 min-h-screen bg-background overflow-x-hidden pb-20">
+          <main className="md:ml-64 flex-1 pt-16 md:pt-10 px-4 sm:px-6 md:px-10 lg:px-12 min-h-screen bg-background overflow-x-hidden pb-20">
             {/* Nav Back to Landing page button */}
             <div className="flex justify-end mb-4">
               <button
