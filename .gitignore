@@ -6,7 +6,6 @@ node_modules/
 # Cargo / Rust Build Outputs
 /contracts/target/
 /contracts/target_build/
-/contracts/Cargo.lock
 
 # Environment Files
 .env
