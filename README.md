@@ -48,7 +48,7 @@ By leveraging **Stellar classic operations** and **Soroban smart contracts**, Gr
 
 * **Live dApp URL:** [https://grantlink-nivpandey.vercel.app](https://grantlink-nivpandey.vercel.app)
 * **GitHub Repository:** [https://github.com/nivpandey270306/grantlink-niv](https://github.com/nivpandey270306/grantlink-niv)
-* **Video Walkthrough:** [Stellar Testnet Integration Walkthrough](https://grantlink-nivpandey.vercel.app/demo-video)
+* **Video Walkthrough:** [Stellar Testnet Integration Walkthrough](https://drive.google.com/file/d/1kkkWm-h_wXrLmO6DmffxJWj9OUGDAHnU/view?usp=sharing)
 
 ---
 
@@ -309,6 +309,9 @@ test test::cancel_grant_test ... ok
 ```
 
 ### 14.2 Frontend Mock Tests (10 Tests)
+<img width="443" height="179" alt="image" src="https://github.com/user-attachments/assets/a0cc435b-dbd0-4d55-80c5-d8ba1ce4ea75" />
+
+
 10 Vitest browser mock tests check wallet connection, grant creation forms, proposal submissions, escrow deposits, and real-time activity updates:
 ```bash
  ✓ src/App.test.tsx  (10 tests)
@@ -349,13 +352,15 @@ The GitHub Actions workflow manages all checks on push/pull requests:
 ![Dashboard Analytics](./docs/screenshots/grantlink_dashboard_1783429995486.png)
 
 ### 16.2 Proposal & Milestone Panels
-![On-Chain Proposals](./docs/screenshots/applications_proposals_page_1783430967364.png)
+<img width="749" height="383" alt="image" src="https://github.com/user-attachments/assets/eb2dca73-8f1b-4909-82d0-6cc6e54ca2ca" />
+
 
 ### 16.3 Mobile Responsive Side Navigation Layout
-![Mobile Sidebar Layout](./docs/screenshots/landing_page_navbar_1783430767340.png)
+<img width="203" height="405" alt="image" src="https://github.com/user-attachments/assets/087afcff-6a0f-430e-8ab7-abfc3c554c9b" />
+
 
 ### 16.4 Passing CI/CD Tests Suite
-![Vitest Tests](./docs/screenshots/vite_success_1783429980254.webp)
+<img width="954" height="421" alt="image" src="https://github.com/user-attachments/assets/3b9548c8-9f16-494e-a1d4-86ff283c49bf" />
 
 ---
 
