@@ -8,6 +8,11 @@
     "contract:deploy": "cd contracts && node deploy.js",
     "contract:invoke": "echo 'Run specific stellar contract invoke commands via Stellar CLI'",
     "frontend:build": "cd frontend && npm run build",
+    "frontend:test": "cd frontend && npm run test",
+    "test": "npm run contract:test && npm run frontend:test",
     "dev": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

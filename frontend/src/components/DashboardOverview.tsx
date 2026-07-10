@@ -20,52 +20,33 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
 
   // Summary Metrics
   const activeGrants = grants.filter(g => g.status === 0).length;
-  const pendingApps = applications.filter(a => a.status === 0).length || 38; // fallback to mock if empty
-  const completedMilestones = events.filter(e => e.type === 'MilestoneReleased').length || 892;
+  const pendingApps = applications.filter(a => a.status === 0).length;
+  const completedMilestones = events.filter(e => e.type === 'MilestoneReleased').length;
   
   // Calculate total released funds
   const totalReleased = events
     .filter(e => e.type === 'MilestoneReleased')
-    .reduce((sum, e) => sum + (e.details?.amount || 0), 0) || 4200000;
+    .reduce((sum, e) => sum + (e.details?.amount || 0), 0);
 
   // Chart Colors matching palette
   const COLORS = ['#606C38', '#DDA15E', '#BC6C25', '#283618', '#546341'];
 
-  // Default Mock fallback data for charts if backend analytics are empty
-  const defaultFundingByCategory = [
-    { name: 'Technology', value: 1200000 },
-    { name: 'Agriculture', value: 950000 },
-    { name: 'Education', value: 640000 },
-    { name: 'Healthcare', value: 1100000 },
-    { name: 'Energy', value: 500000 }
-  ];
+  const categoryData = analytics?.fundingByCategory?.length ? analytics.fundingByCategory : [];
+  const monthlyData = analytics?.monthlyTrends?.length ? analytics.monthlyTrends : [];
+  const statusData = analytics?.grantStatus?.length ? analytics.grantStatus : [];
+  const appStatusData = analytics?.applicationStatus?.length ? analytics.applicationStatus : [];
 
-  const defaultMonthlyTrends = [
-    { month: 'Jan', amount: 120000 },
-    { month: 'Feb', amount: 150000 },
-    { month: 'Mar', amount: 210000 },
-    { month: 'Apr', amount: 340000 },
-    { month: 'May', amount: 480000 },
-    { month: 'Jun', amount: 620000 },
-    { month: 'Jul', amount: 800000 }
-  ];
+  const hasMonthlyData = monthlyData.length > 0 && monthlyData.some((d: any) => d.amount > 0);
+  const hasCategoryData = categoryData.length > 0 && categoryData.some((d: any) => d.value > 0);
+  const hasStatusData = statusData.length > 0 && statusData.some((d: any) => d.count > 0);
 
-  const defaultGrantStatus = [
-    { status: 'Active', count: activeGrants || 12 },
-    { status: 'Completed', count: 4 },
-    { status: 'Cancelled', count: 1 }
-  ];
-
-  const defaultAppStatus = [
-    { status: 'Pending', count: pendingApps },
-    { status: 'Approved', count: 45 },
-    { status: 'Rejected', count: 12 }
-  ];
-
-  const categoryData = analytics?.fundingByCategory?.length ? analytics.fundingByCategory : defaultFundingByCategory;
-  const monthlyData = analytics?.monthlyTrends?.length ? analytics.monthlyTrends : defaultMonthlyTrends;
-  const statusData = analytics?.grantStatus?.length ? analytics.grantStatus : defaultGrantStatus;
-  const appStatusData = analytics?.applicationStatus?.length ? analytics.applicationStatus : defaultAppStatus;
+  const renderEmptyState = () => (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-container-lowest bg-opacity-95 text-outline text-xs border border-dashed border-outline-variant rounded-lg p-4 z-10">
+      <span className="material-symbols-outlined text-xl mb-1 text-primary">query_stats</span>
+      <span className="font-bold text-forest font-inter">No On-Chain Data Available</span>
+      <span className="text-[10px] text-on-surface-variant font-inter mt-0.5">Waiting for blockchain activity...</span>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -90,10 +71,8 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
             <span className="material-symbols-outlined text-primary text-xl">account_balance</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-forest">{activeGrants || 12}</span>
-            <span className="text-[10px] text-primary font-bold flex items-center font-inter">
-              <span className="material-symbols-outlined text-xs">trending_up</span> +12%
-            </span>
+            <span className="text-3xl font-bold text-forest">{activeGrants}</span>
+            <span className="text-[10px] text-on-surface-variant font-semibold font-inter">Active pools</span>
           </div>
         </div>
 
@@ -119,7 +98,7 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
             <span className="text-3xl font-bold text-forest">
               {totalReleased >= 1000000 ? `${(totalReleased / 1000000).toFixed(1)}M` : totalReleased.toLocaleString()} XLM
             </span>
-            <span className="text-[10px] text-primary font-bold font-inter">YTD releases</span>
+            <span className="text-[10px] text-primary font-bold font-inter">Total disbursed</span>
           </div>
         </div>
 
@@ -141,9 +120,10 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
         {/* Main Chart Area */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Chart 1: Monthly Funding Trends */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 relative">
             <h3 className="text-lg font-bold text-forest font-soria mb-4">Funding Distribution</h3>
-            <div className="h-64">
+            <div className="h-64 relative">
+              {!hasMonthlyData && renderEmptyState()}
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E3E0C8" />
@@ -159,9 +139,10 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
           {/* Charts Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Category Allocation Bar Chart */}
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 relative">
               <h3 className="text-base font-bold text-forest font-soria mb-4">Funding by Category</h3>
-              <div className="h-48">
+              <div className="h-48 relative">
+                {!hasCategoryData && renderEmptyState()}
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E3E0C8" />
@@ -175,9 +156,10 @@ export function DashboardOverview({ onNavigateToTab }: DashboardOverviewProps) {
             </div>
 
             {/* Grant Status Distribution */}
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 relative">
               <h3 className="text-base font-bold text-forest font-soria mb-4">Grant Success Rate</h3>
-              <div className="h-48 flex justify-center items-center">
+              <div className="h-48 flex justify-center items-center relative">
+                {!hasStatusData && renderEmptyState()}
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie

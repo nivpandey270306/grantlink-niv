@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { rpc, Contract, scValToNative, TransactionBuilder, xdr, nativeToScVal, Account } from '@stellar/stellar-sdk';
 import { useWalletStore } from './wallet';
+import { isConnected } from '@stellar/freighter-api';
 
 export interface Grant {
   onChainId: number;
@@ -943,7 +944,11 @@ export const useDataStore = create<DataState>((set, get) => ({
     const escrowId = getEnvVar('VITE_GRANT_ESCROW_CONTRACT');
 
     const walletState = useWalletStore.getState();
-    const walletAvailable = !!(window as any).stellarPublicKey || !!(window as any).albedo;
+    const freighterResult = await isConnected();
+    const isFreighterAvailable = typeof freighterResult === 'boolean' 
+      ? freighterResult 
+      : freighterResult?.isConnected;
+    const walletAvailable = !!isFreighterAvailable || !!(window as any).albedo;
     const walletAddress = walletState.address || undefined;
 
     let rpcReachable = false;
